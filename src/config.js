@@ -1,45 +1,57 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
+// Configuration of the integration.
 //
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
+// DEFAULT_CONFIG mirrors the `default` values of the manifest `config_schema`
+// (test/manifest.test.js keeps both sides in sync). The supervisor sends the
+// values as the form stored them: normalizeConfig() validates them and falls
+// back to the defaults, so the rest of the code never sees a malformed value.
 //
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// There is no refresh setting: one forecast and one warning list every 30
+// minutes at most (scheduler.js).
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
-export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
-};
+import { COUNTIES } from './counties.js';
+
+// County of the warnings: 'auto' guesses it from the location of each house
+// (counties.js), a code forces it for every house.
+const COUNTY_CHOICES = ['auto', ...Object.keys(COUNTIES)];
+
+// Language of the texts the integration writes itself (scene variables and
+// outputs), French by default (the maintainer's choice). 'auto' follows the
+// language of the last weather request of the core. The others are the
+// languages of the Gladys interface.
+const LANGUAGE_CHOICES = ['auto', 'en', 'fr', 'de', 'es'];
+
+// Units of the scene variables and outputs. 'auto' follows the unit system of
+// the last weather request of the core (the preference of the user who
+// looked at the weather last).
+const UNITS_CHOICES = ['auto', 'metric', 'us'];
+
+const DEFAULT_CONFIG = Object.freeze({
+  county: 'auto',
+  language: 'fr',
+  units: 'auto',
+});
 
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * @description Normalize the raw configuration sent by Gladys.
+ * @param {object} [raw] - The configuration values, as stored by the form.
+ * @returns {{county: string, language: string, units: string}} The
+ * normalized configuration.
+ * @example
+ * normalizeConfig({ county: 'EI11', language: 'fr' });
  */
-export function normalizeConfig(raw = {}) {
+function normalizeConfig(raw = {}) {
+  const source = raw !== null && typeof raw === 'object' ? raw : {};
+  const pick = (key, choices) => {
+    const value = String(source[key] ?? DEFAULT_CONFIG[key]).trim();
+    return choices.includes(value) ? value : DEFAULT_CONFIG[key];
+  };
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    county: pick('county', COUNTY_CHOICES),
+    language: pick('language', LANGUAGE_CHOICES),
+    units: pick('units', UNITS_CHOICES),
   };
 }
+
+export { COUNTY_CHOICES, DEFAULT_CONFIG, LANGUAGE_CHOICES, UNITS_CHOICES, normalizeConfig };

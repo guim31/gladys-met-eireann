@@ -1,93 +1,220 @@
+// -----------------------------------------------------------------------------
+// Scene actions and triggers, on the real answers of 2026-10-23: the next
+// hour, the day, the warnings of a county, and the two triggers.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { DEVICE_BLUEPRINTS } from '../src/devices/index.js';
-import { MOTION_DETECTED_TRIGGER, motionSensor } from '../src/devices/motionSensor.js';
-import { SCENE_ACTIONS } from '../src/scenes.js';
-import { normalizeConfig } from '../src/config.js';
+import { parseForecast } from '../src/forecast.js';
+import { readNextHour } from '../src/next-hour.js';
+import { currentWarnings, dayForecast, precipitationNextHour } from '../src/scene-actions.js';
+import { createPrecipitationWatcher } from '../src/scene-triggers.js';
+import { createWarningWatcher } from '../src/warning-triggers.js';
+import { parseWarnings } from '../src/warnings.js';
+import {
+  FIXTURE_NOW,
+  HOUSES,
+  forecastOf,
+  loadFixture,
+  loadText,
+  silentLogger,
+  withHours,
+} from './helpers/fixtures.js';
 
-const manifest = JSON.parse(
-  await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
-);
-const config = normalizeConfig();
+const TZ = 'Europe/Dublin';
+const MINUTE = 60 * 1000;
+const realWarnings = () => parseWarnings(loadFixture('real-warnings-ireland.json'), FIXTURE_NOW);
 
-const declarationOf = (list, key) => manifest[list].find((entry) => entry.key === key);
-const keysOf = (list) => (list ?? []).map((entry) => entry.key);
-const deviceIdOf = (gladys, key) =>
-  DEVICE_BLUEPRINTS.find((bp) => bp.key === key).deviceExternalId(gladys);
-
-// Let the async interval callback run to completion.
-const flush = () => new Promise((resolve) => setImmediate(resolve));
-
-test('the motion sensor fires one motion_detected event per detection, none on the clear', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'one detection, one event');
-    assert.equal(gladys.fake.sceneEvents[0].key, MOTION_DETECTED_TRIGGER);
-    assert.equal(gladys.fake.states.at(-1).state, 1, 'the state is still published');
-
-    t.mock.timers.tick(10_000);
-    await flush();
-    assert.equal(gladys.fake.states.at(-1).state, 0, 'the detection is cleared');
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'the clear fires no event');
-  } finally {
-    stopPush();
-  }
+test('a dry next hour, read from the hour under way and the next one', () => {
+  const reading = readNextHour(forecastOf(HOUSES.dublin.fixture), FIXTURE_NOW);
+  assert.equal(reading.available, true);
+  assert.equal(reading.minutesUntil, null);
+  const outputs = precipitationNextHour(forecastOf(HOUSES.dublin.fixture), {
+    language: 'fr',
+    units: 'metric',
+    now: FIXTURE_NOW,
+  });
+  assert.deepEqual(outputs, {
+    available: true,
+    precipitation_expected: false,
+    summary: 'Pas de précipitations prévues dans l’heure.',
+  });
 });
 
-test('motion_detected data only carries keys the trigger declares', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-  } finally {
-    stopPush();
-  }
-  const [{ data }] = gladys.fake.sceneEvents;
-  const trigger = declarationOf('scene_triggers', MOTION_DETECTED_TRIGGER);
-  // The core keeps the `fields` keys (filters) and the `variables` keys
-  // (exposed to the scene): any other key would be silently dropped.
-  const declared = [...keysOf(trigger.fields), ...keysOf(trigger.variables)];
-  for (const [key, value] of Object.entries(data)) {
-    assert.ok(declared.includes(key), `data.${key} is not declared, the core would drop it`);
-    assert.ok(value === null || typeof value !== 'object', `data.${key} must be a primitive`);
-  }
-  // A `"source": "devices"` filter stores a device external_id.
-  assert.equal(data.device, deviceIdOf(gladys, 'motion-sensor'));
-  const targets = trigger.fields.find((field) => field.key === 'target').options;
-  assert.ok(
-    targets.some((option) => option.value === data.target),
-    `data.target "${data.target}" must be one of the filter options`,
+test('rain at 19:00 is announced 50 minutes ahead, with its probability', () => {
+  const forecast = parseForecast(
+    withHours(loadText(HOUSES.dublin.fixture), {
+      '2026-10-23T19:00:00Z': { symbol: 9, amount: 1.2, probability: 80 },
+    }),
+  );
+  const outputs = precipitationNextHour(forecast, {
+    language: 'en',
+    units: 'metric',
+    now: FIXTURE_NOW,
+  });
+  assert.equal(outputs.precipitation_expected, true);
+  assert.equal(outputs.minutes_until, 50);
+  assert.equal(outputs.precipitation_type, 'rain');
+  assert.equal(outputs.precipitation, 1.2);
+  assert.equal(outputs.probability, 80);
+  assert.equal(outputs.summary, 'Light rain expected in 50 minutes (80% chance).');
+});
+
+test('the forecast of tomorrow, in German', () => {
+  const outputs = dayForecast(forecastOf(HOUSES.galway.fixture), {
+    house: HOUSES.galway,
+    day: 'tomorrow',
+    language: 'de',
+    units: 'metric',
+    timeZone: TZ,
+    now: FIXTURE_NOW,
+  });
+  assert.equal(outputs.available, true);
+  assert.ok(outputs.temperature_min <= outputs.temperature_max);
+  assert.equal(typeof outputs.precipitation_probability, 'number');
+  assert.equal(typeof outputs.wind_gust, 'number');
+  assert.match(outputs.summary, /^Morgen: /);
+});
+
+test('the warnings of Kerry: highest level orange, not yet in effect', () => {
+  const outputs = currentWarnings(realWarnings(), {
+    county: 'EI11',
+    language: 'en',
+    timeZone: TZ,
+    now: FIXTURE_NOW,
+  });
+  assert.equal(outputs.available, true);
+  assert.equal(outputs.county, 'Kerry');
+  assert.equal(outputs.has_warning, true);
+  assert.equal(outputs.warning_count, 3);
+  assert.equal(outputs.level, 'orange');
+  assert.equal(outputs.in_effect, false);
+  assert.equal(outputs.warning_type, 'rain');
+  assert.equal(outputs.headline, 'Status Orange - Rain warning for Kerry');
+  assert.match(
+    outputs.summary,
+    /^3 Met Éireann warnings for Kerry: Orange rain warning, from Sat, Oct 24, 07:00 to Sat, Oct 24, 14:00; /,
+  );
+  const later = currentWarnings(realWarnings(), {
+    county: 'EI11',
+    language: 'fr',
+    timeZone: TZ,
+    now: Date.parse('2026-10-24T08:00:00+01:00'),
+  });
+  assert.equal(later.in_effect, true);
+});
+
+test('no warning for Dublin; no county abroad; an unknown list says so', () => {
+  const dublin = currentWarnings(realWarnings(), {
+    county: 'EI07',
+    language: 'es',
+    timeZone: TZ,
+    now: FIXTURE_NOW,
+  });
+  assert.equal(dublin.has_warning, false);
+  assert.equal(dublin.level, 'none');
+  assert.equal(dublin.summary, 'Ningún aviso de Met Éireann para Dublin.');
+  assert.equal(
+    currentWarnings(realWarnings(), { county: null, language: 'en', timeZone: TZ }).available,
+    false,
+  );
+  assert.equal(
+    currentWarnings(null, { county: 'EI07', language: 'en', timeZone: TZ }).available,
+    false,
   );
 });
 
-test('identify_device signals the chosen device and returns the declared outputs', async () => {
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'light') },
-    config,
+test('the precipitation trigger fires on the dry → wet transition only', async () => {
+  const events = [];
+  let now = FIXTURE_NOW;
+  const watcher = createPrecipitationWatcher({
+    publish: async (key, data) => events.push({ key, data }),
+    getLanguage: () => 'fr',
+    getUnits: () => 'metric',
+    logger: silentLogger(),
+    now: () => now,
   });
-  assert.deepEqual(outputs, { signalled: true });
-  const declared = keysOf(declarationOf('scene_actions', 'identify_device').outputs);
-  for (const key of Object.keys(outputs)) {
-    assert.ok(declared.includes(key), `output "${key}" is not declared, the core would drop it`);
-  }
+  const dry = forecastOf(HOUSES.dublin.fixture);
+  const wet = parseForecast(
+    withHours(loadText(HOUSES.dublin.fixture), {
+      '2026-10-23T19:00:00Z': { symbol: 13, amount: 3, probability: 70 },
+    }),
+  );
+  assert.equal(await watcher.observe(HOUSES.dublin, dry), null, 'baseline');
+  now += 30 * MINUTE;
+  const data = await watcher.observe(HOUSES.dublin, wet);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].key, 'precipitation_expected');
+  assert.equal(data.house, 'home');
+  assert.equal(data.precipitation_type, 'snow');
+  assert.equal(data.minutes_until, 20);
+  assert.equal(await watcher.observe(HOUSES.dublin, wet), null, 'still wet: no new event');
 });
 
-test('identify_device reports a device that cannot signal itself through its output', async () => {
-  // Not a failure: a scene action is never a condition, the scene author
-  // gates the following actions on the output instead.
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'weather-station') },
-    config,
+test('the warning trigger: baseline, then each change, in the language set', async () => {
+  const events = [];
+  const watcher = createWarningWatcher({
+    publish: async (key, data) => events.push({ key, data }),
+    getLanguage: () => 'fr',
+    getCounty: (house) => house.county,
+    timeZone: TZ,
+    logger: silentLogger(),
+    now: () => FIXTURE_NOW,
   });
-  assert.deepEqual(outputs, { signalled: false });
+  const house = { ...HOUSES.galway };
+  const warnings = realWarnings();
+  assert.deepEqual(await watcher.observe(house, warnings), [], 'baseline');
+  assert.deepEqual(await watcher.observe(house, null), [], 'unknown list: no reading');
+
+  // The orange wind warning is raised to red, the yellow rain one lifted.
+  const next = warnings
+    .filter((warning) => !(warning.level === 'yellow' && warning.type === 'rain'))
+    .map((warning) =>
+      warning.level === 'orange' ? { ...warning, level: 'red', rank: 3 } : warning,
+    );
+  const published = await watcher.observe(house, next);
+  assert.deepEqual(
+    published.map((data) => [data.change, data.level, data.warning_type]),
+    [
+      ['upgraded', 'red', 'wind'],
+      ['lifted', 'yellow', 'rain'],
+    ],
+  );
+  assert.equal(events.length, 2);
+  assert.equal(events[0].key, 'warning_changed');
+  assert.deepEqual(Object.keys(events[0].data).sort(), [
+    'change',
+    'county',
+    'description',
+    'headline',
+    'house',
+    'house_name',
+    'level',
+    'summary',
+    'warning_type',
+  ]);
+  assert.equal(events[0].data.house, 'seaside');
+  assert.equal(events[0].data.county, 'Galway');
+  assert.equal(
+    events[0].data.summary,
+    'Vigilance vent rouge relevée pour Galway, du sam. 24 oct., 14:00 au dim. 25 oct., 09:00.',
+  );
+  assert.equal(events[1].data.summary, 'Vigilance pluie jaune levée pour Galway.');
+});
+
+test('a house whose county changes takes a new baseline', async () => {
+  const events = [];
+  let county = 'EI07';
+  const watcher = createWarningWatcher({
+    publish: async (key, data) => events.push(data),
+    getLanguage: () => 'en',
+    getCounty: () => county,
+    timeZone: TZ,
+    logger: silentLogger(),
+    now: () => FIXTURE_NOW,
+  });
+  await watcher.observe(HOUSES.dublin, realWarnings());
+  county = 'EI11';
+  await watcher.observe(HOUSES.dublin, realWarnings());
+  assert.deepEqual(events, [], 'Kerry warnings are not "issued" because the setting changed');
 });

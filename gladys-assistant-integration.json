@@ -1,177 +1,1454 @@
 {
   "manifest_version": 1,
-  "type": "device",
-  "name": "Demo Devices Template",
+  "type": "weather",
+  "name": "Met Éireann",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Forecasts and official weather warnings for Ireland, from Met Éireann open data. No API key.",
+    "fr": "Prévisions et vigilances météo officielles pour l'Irlande, données ouvertes de Met Éireann.",
+    "de": "Vorhersagen und amtliche Wetterwarnungen für Irland, offene Daten von Met Éireann.",
+    "es": "Previsiones y avisos meteorológicos oficiales para Irlanda, datos abiertos de Met Éireann."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-met-eireann:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-met-eireann/main/cover.png",
+  "categories": ["environment"],
+  "transports": ["cloud"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Nothing to sign up for",
+        "fr": "Aucune inscription",
+        "de": "Keine Anmeldung nötig",
+        "es": "Sin registro"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Met Éireann's forecasts and warnings are open data: no account, no API key. The integration refreshes the weather of every house that has a location in Gladys about every 30 minutes, and adds the warnings of its county. It covers Ireland and its surroundings only. Copyright Met Éireann, data under CC BY 4.0; this integration is not affiliated with Met Éireann.",
+        "fr": "Les prévisions et vigilances de Met Éireann sont des données ouvertes : ni compte, ni clé d'API. L'intégration met à jour la météo de chaque maison qui a une position dans Gladys toutes les 30 minutes environ, et y ajoute les vigilances de son comté. Seulement pour l'Irlande et ses environs. Copyright Met Éireann, données sous licence CC BY 4.0 ; cette intégration n'est pas affiliée à Met Éireann.",
+        "de": "Die Vorhersagen und Warnungen von Met Éireann sind offene Daten: kein Konto, kein API-Schlüssel. Die Integration aktualisiert das Wetter jedes Zuhauses, das in Gladys einen Standort hat, etwa alle 30 Minuten und fügt die Warnungen seines Countys hinzu. Nur für Irland und seine Umgebung. Copyright Met Éireann, Daten unter CC BY 4.0; diese Integration ist nicht mit Met Éireann verbunden.",
+        "es": "Las previsiones y avisos de Met Éireann son datos abiertos: sin cuenta ni clave API. La integración actualiza el tiempo de cada vivienda que tenga una ubicación en Gladys cada 30 minutos aproximadamente, y añade los avisos de su condado. Solo cubre Irlanda y sus alrededores. Copyright Met Éireann, datos bajo licencia CC BY 4.0; esta integración no está afiliada a Met Éireann."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://www.met.ie/about-us/specialist-services/open-data",
+          "label": {
+            "en": "Open data",
+            "fr": "Données ouvertes",
+            "de": "Offene Daten",
+            "es": "Datos abiertos"
+          }
+        },
+        {
+          "url": "https://www.met.ie/warnings",
+          "label": {
+            "en": "Weather warnings",
+            "fr": "Vigilances météo",
+            "de": "Wetterwarnungen",
+            "es": "Avisos meteorológicos"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "county",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "County of the warnings",
+        "fr": "Comté des vigilances",
+        "de": "County der Warnungen",
+        "es": "Condado de los avisos"
+      },
+      "description": {
+        "en": "Automatic finds the county of each house from its location. Choose it yourself if your house is near a county border and the warnings shown are not yours. Applies to every house.",
+        "fr": "Automatique trouve le comté de chaque maison d'après sa position. Choisissez-le vous-même si votre maison est près de la limite d'un comté et que les vigilances affichées ne sont pas les vôtres. S'applique à toutes les maisons.",
+        "de": "Automatisch findet das County jedes Zuhauses anhand seines Standorts. Wähle es selbst, wenn dein Zuhause nahe einer County-Grenze liegt und die angezeigten Warnungen nicht deine sind. Gilt für alle Zuhause.",
+        "es": "Automático encuentra el condado de cada vivienda según su ubicación. Elíjalo usted mismo si su vivienda está cerca del límite de un condado y los avisos mostrados no son los suyos. Se aplica a todas las viviendas."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "auto",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "auto",
+          "label": {
+            "en": "Automatic",
+            "fr": "Automatique",
+            "de": "Automatisch",
+            "es": "Automático"
+          }
+        },
+        {
+          "value": "EI01",
+          "label": {
+            "en": "Carlow",
+            "fr": "Carlow",
+            "de": "Carlow",
+            "es": "Carlow"
+          }
+        },
+        {
+          "value": "EI02",
+          "label": {
+            "en": "Cavan",
+            "fr": "Cavan",
+            "de": "Cavan",
+            "es": "Cavan"
+          }
+        },
+        {
+          "value": "EI03",
+          "label": {
+            "en": "Clare",
+            "fr": "Clare",
+            "de": "Clare",
+            "es": "Clare"
+          }
+        },
+        {
+          "value": "EI04",
+          "label": {
+            "en": "Cork",
+            "fr": "Cork",
+            "de": "Cork",
+            "es": "Cork"
+          }
+        },
+        {
+          "value": "EI06",
+          "label": {
+            "en": "Donegal",
+            "fr": "Donegal",
+            "de": "Donegal",
+            "es": "Donegal"
+          }
+        },
+        {
+          "value": "EI07",
+          "label": {
+            "en": "Dublin",
+            "fr": "Dublin",
+            "de": "Dublin",
+            "es": "Dublin"
+          }
+        },
+        {
+          "value": "EI10",
+          "label": {
+            "en": "Galway",
+            "fr": "Galway",
+            "de": "Galway",
+            "es": "Galway"
+          }
+        },
+        {
+          "value": "EI11",
+          "label": {
+            "en": "Kerry",
+            "fr": "Kerry",
+            "de": "Kerry",
+            "es": "Kerry"
+          }
+        },
+        {
+          "value": "EI12",
+          "label": {
+            "en": "Kildare",
+            "fr": "Kildare",
+            "de": "Kildare",
+            "es": "Kildare"
+          }
+        },
+        {
+          "value": "EI13",
+          "label": {
+            "en": "Kilkenny",
+            "fr": "Kilkenny",
+            "de": "Kilkenny",
+            "es": "Kilkenny"
+          }
+        },
+        {
+          "value": "EI15",
+          "label": {
+            "en": "Laois",
+            "fr": "Laois",
+            "de": "Laois",
+            "es": "Laois"
+          }
+        },
+        {
+          "value": "EI14",
+          "label": {
+            "en": "Leitrim",
+            "fr": "Leitrim",
+            "de": "Leitrim",
+            "es": "Leitrim"
+          }
+        },
+        {
+          "value": "EI16",
+          "label": {
+            "en": "Limerick",
+            "fr": "Limerick",
+            "de": "Limerick",
+            "es": "Limerick"
+          }
+        },
+        {
+          "value": "EI18",
+          "label": {
+            "en": "Longford",
+            "fr": "Longford",
+            "de": "Longford",
+            "es": "Longford"
+          }
+        },
+        {
+          "value": "EI19",
+          "label": {
+            "en": "Louth",
+            "fr": "Louth",
+            "de": "Louth",
+            "es": "Louth"
+          }
+        },
+        {
+          "value": "EI20",
+          "label": {
+            "en": "Mayo",
+            "fr": "Mayo",
+            "de": "Mayo",
+            "es": "Mayo"
+          }
+        },
+        {
+          "value": "EI21",
+          "label": {
+            "en": "Meath",
+            "fr": "Meath",
+            "de": "Meath",
+            "es": "Meath"
+          }
+        },
+        {
+          "value": "EI22",
+          "label": {
+            "en": "Monaghan",
+            "fr": "Monaghan",
+            "de": "Monaghan",
+            "es": "Monaghan"
+          }
+        },
+        {
+          "value": "EI23",
+          "label": {
+            "en": "Offaly",
+            "fr": "Offaly",
+            "de": "Offaly",
+            "es": "Offaly"
+          }
+        },
+        {
+          "value": "EI24",
+          "label": {
+            "en": "Roscommon",
+            "fr": "Roscommon",
+            "de": "Roscommon",
+            "es": "Roscommon"
+          }
+        },
+        {
+          "value": "EI25",
+          "label": {
+            "en": "Sligo",
+            "fr": "Sligo",
+            "de": "Sligo",
+            "es": "Sligo"
+          }
+        },
+        {
+          "value": "EI26",
+          "label": {
+            "en": "Tipperary",
+            "fr": "Tipperary",
+            "de": "Tipperary",
+            "es": "Tipperary"
+          }
+        },
+        {
+          "value": "EI27",
+          "label": {
+            "en": "Waterford",
+            "fr": "Waterford",
+            "de": "Waterford",
+            "es": "Waterford"
+          }
+        },
+        {
+          "value": "EI29",
+          "label": {
+            "en": "Westmeath",
+            "fr": "Westmeath",
+            "de": "Westmeath",
+            "es": "Westmeath"
+          }
+        },
+        {
+          "value": "EI30",
+          "label": {
+            "en": "Wexford",
+            "fr": "Wexford",
+            "de": "Wexford",
+            "es": "Wexford"
+          }
+        },
+        {
+          "value": "EI31",
+          "label": {
+            "en": "Wicklow",
+            "fr": "Wicklow",
+            "de": "Wicklow",
+            "es": "Wicklow"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "units",
+      "type": "select",
+      "label": {
+        "en": "Units of the scene values",
+        "fr": "Unités des valeurs de scène",
+        "de": "Einheiten der Szenenwerte",
+        "es": "Unidades de los valores de escena"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Units of the temperatures, wind and precipitation the integration puts in scene variables. The weather widget always follows each user's preference.",
+        "fr": "Unités des températures, du vent et des précipitations que l'intégration met dans les variables de scène. Le widget météo suit toujours la préférence de chaque utilisateur.",
+        "de": "Einheiten der Temperaturen, des Windes und des Niederschlags, die die Integration in Szenenvariablen schreibt. Das Wetter-Widget folgt immer der Einstellung jedes Benutzers.",
+        "es": "Unidades de las temperaturas, el viento y la precipitación que la integración pone en las variables de escena. El widget del tiempo sigue siempre la preferencia de cada usuario."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": {
+            "en": "Automatic",
+            "fr": "Automatique",
+            "de": "Automatisch",
+            "es": "Automático"
+          }
+        },
+        {
+          "value": "metric",
+          "label": {
+            "en": "Metric (°C, m/s, mm)",
+            "fr": "Métrique (°C, m/s, mm)",
+            "de": "Metrisch (°C, m/s, mm)",
+            "es": "Métrico (°C, m/s, mm)"
+          }
+        },
+        {
+          "value": "us",
+          "label": {
+            "en": "US (°F, mph, in)",
+            "fr": "US (°F, mph, in)",
+            "de": "US (°F, mph, in)",
+            "es": "EE. UU. (°F, mph, in)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the scene texts",
+        "fr": "Langue des textes de scène",
+        "de": "Sprache der Szenentexte",
+        "es": "Idioma de los textos de escena"
+      },
+      "description": {
+        "en": "Language of the sentences the integration puts in scene variables. Automatic follows the language of your Gladys.",
+        "fr": "Langue des phrases que l'intégration met dans les variables de scène. Automatique suit la langue de votre Gladys.",
+        "de": "Sprache der Sätze, die die Integration in Szenenvariablen schreibt. Automatisch folgt der Sprache deines Gladys.",
+        "es": "Idioma de las frases que la integración pone en las variables de escena. Automático sigue el idioma de su Gladys."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "auto",
+          "label": {
+            "en": "Automatic",
+            "fr": "Automatique",
+            "de": "Automatisch",
+            "es": "Automático"
+          }
+        },
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test Met Éireann",
+        "fr": "Tester Met Éireann",
+        "de": "Met Éireann testen",
+        "es": "Probar Met Éireann"
+      },
+      "description": {
+        "en": "Fetches the weather of your first house and shows its current temperature and the warnings of its county.",
+        "fr": "Récupère la météo de votre première maison et affiche sa température actuelle et les vigilances de son comté.",
+        "de": "Ruft das Wetter deines ersten Zuhauses ab und zeigt die aktuelle Temperatur und die Warnungen seines Countys.",
+        "es": "Obtiene el tiempo de su primera vivienda y muestra su temperatura actual y los avisos de su condado."
+      },
+      "timeout_seconds": 20
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "precipitation_expected",
+      "label": {
+        "en": "Rain or snow expected within the hour",
+        "fr": "Pluie ou neige attendue dans l'heure",
+        "de": "Regen oder Schnee in der nächsten Stunde erwartet",
+        "es": "Lluvia o nieve prevista en la próxima hora"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The hourly forecast now shows precipitation this hour or the next, where the previous refresh showed none.",
+        "fr": "La prévision horaire annonce des précipitations cette heure-ci ou la suivante, là où la mise à jour précédente n'en annonçait pas.",
+        "de": "Die stündliche Vorhersage zeigt jetzt Niederschlag in dieser oder der nächsten Stunde, wo die vorherige Aktualisierung keinen zeigte.",
+        "es": "La previsión horaria indica ahora precipitación en esta hora o la siguiente, donde la actualización anterior no indicaba ninguna."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "house",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          },
+          "description": {
+            "en": "Leave empty for every house.",
+            "fr": "Laissez vide pour toutes les maisons.",
+            "de": "Leer lassen für alle Zuhause.",
+            "es": "Déjelo vacío para todas las viviendas."
+          },
+          "required": false
         },
         {
-          "key": "target",
+          "key": "precipitation_type",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "Precipitation",
+            "fr": "Précipitations",
+            "de": "Niederschlag",
+            "es": "Precipitación"
+          },
+          "description": {
+            "en": "Leave empty for any precipitation.",
+            "fr": "Laissez vide pour toutes les précipitations.",
+            "de": "Leer lassen für jeden Niederschlag.",
+            "es": "Déjelo vacío para cualquier precipitación."
+          },
+          "required": false,
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "rain",
+              "label": {
+                "en": "Rain",
+                "fr": "Pluie",
+                "de": "Regen",
+                "es": "Lluvia"
+              }
+            },
+            {
+              "value": "sleet",
+              "label": {
+                "en": "Sleet",
+                "fr": "Neige fondue",
+                "de": "Schneeregen",
+                "es": "Aguanieve"
+              }
+            },
+            {
+              "value": "snow",
+              "label": {
+                "en": "Snow",
+                "fr": "Neige",
+                "de": "Schnee",
+                "es": "Nieve"
+              }
+            }
+          ]
+        },
+        {
+          "key": "intensity",
+          "type": "multi_select",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité",
+            "de": "Intensität",
+            "es": "Intensidad"
+          },
+          "description": {
+            "en": "Leave empty for any intensity.",
+            "fr": "Laissez vide pour toute intensité.",
+            "de": "Leer lassen für jede Intensität.",
+            "es": "Déjelo vacío para cualquier intensidad."
+          },
+          "required": false,
+          "options": [
+            {
+              "value": "light",
+              "label": {
+                "en": "Light",
+                "fr": "Faible",
+                "de": "Leicht",
+                "es": "Débil"
+              }
+            },
+            {
+              "value": "moderate",
+              "label": {
+                "en": "Moderate",
+                "fr": "Modérée",
+                "de": "Mäßig",
+                "es": "Moderada"
+              }
+            },
+            {
+              "value": "heavy",
+              "label": {
+                "en": "Heavy",
+                "fr": "Forte",
+                "de": "Stark",
+                "es": "Fuerte"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "house_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          }
+        },
+        {
+          "key": "precipitation_type",
+          "type": "string",
+          "label": {
+            "en": "Precipitation (rain, sleet, snow)",
+            "fr": "Précipitations (rain, sleet, snow)",
+            "de": "Niederschlag (rain, sleet, snow)",
+            "es": "Precipitación (rain, sleet, snow)"
+          }
+        },
+        {
+          "key": "intensity",
+          "type": "string",
+          "label": {
+            "en": "Intensity (light, moderate, heavy)",
+            "fr": "Intensité (light, moderate, heavy)",
+            "de": "Intensität (light, moderate, heavy)",
+            "es": "Intensidad (light, moderate, heavy)"
+          }
+        },
+        {
+          "key": "thunder",
+          "type": "boolean",
+          "label": {
+            "en": "With thunder",
+            "fr": "Avec orage",
+            "de": "Mit Gewitter",
+            "es": "Con tormenta"
+          }
+        },
+        {
+          "key": "minutes_until",
+          "type": "number",
+          "label": {
+            "en": "Minutes until it starts",
+            "fr": "Minutes avant le début",
+            "de": "Minuten bis zum Beginn",
+            "es": "Minutos hasta el inicio"
+          }
+        },
+        {
+          "key": "precipitation",
+          "type": "number",
+          "label": {
+            "en": "Precipitation in that hour (mm or in)",
+            "fr": "Précipitations de cette heure (mm ou in)",
+            "de": "Niederschlag in dieser Stunde (mm oder in)",
+            "es": "Precipitación en esa hora (mm o in)"
+          }
+        },
+        {
+          "key": "probability",
+          "type": "number",
+          "label": {
+            "en": "Probability (%)",
+            "fr": "Probabilité (%)",
+            "de": "Wahrscheinlichkeit (%)",
+            "es": "Probabilidad (%)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          },
+          "description": {
+            "en": "A sentence ready to put in a message.",
+            "fr": "Une phrase prête à mettre dans un message.",
+            "de": "Ein Satz, fertig für eine Nachricht.",
+            "es": "Una frase lista para poner en un mensaje."
+          }
+        }
+      ]
+    },
+    {
+      "key": "warning_changed",
+      "label": {
+        "en": "Met Éireann warning changed",
+        "fr": "Vigilance Met Éireann modifiée",
+        "de": "Warnung von Met Éireann geändert",
+        "es": "Aviso de Met Éireann modificado"
+      },
+      "description": {
+        "en": "A warning for the county of a house is issued, upgraded, downgraded, updated or lifted.",
+        "fr": "Une vigilance du comté d’une maison est émise, relevée, abaissée, mise à jour ou levée.",
+        "de": "Eine Warnung für das County eines Zuhauses wird ausgegeben, hochgestuft, herabgestuft, aktualisiert oder aufgehoben.",
+        "es": "Un aviso para el condado de una vivienda se emite, se eleva, se rebaja, se actualiza o se levanta."
+      },
+      "fields": [
+        {
+          "key": "house",
+          "type": "select",
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          },
+          "description": {
+            "en": "Leave empty for every house.",
+            "fr": "Laissez vide pour toutes les maisons.",
+            "de": "Leer lassen für alle Zuhause.",
+            "es": "Déjelo vacío para todas las viviendas."
+          },
+          "required": false
+        },
+        {
+          "key": "change",
+          "type": "multi_select",
+          "label": {
+            "en": "Change",
+            "fr": "Changement",
+            "de": "Änderung",
+            "es": "Cambio"
+          },
+          "description": {
+            "en": "Leave empty for any change.",
+            "fr": "Laissez vide pour tout changement.",
+            "de": "Leer lassen für jede Änderung.",
+            "es": "Déjelo vacío para cualquier cambio."
+          },
+          "required": false,
+          "options": [
+            {
+              "value": "issued",
+              "label": {
+                "en": "Issued",
+                "fr": "Émise",
+                "de": "Ausgegeben",
+                "es": "Emitido"
+              }
+            },
+            {
+              "value": "upgraded",
+              "label": {
+                "en": "Upgraded",
+                "fr": "Relevée",
+                "de": "Hochgestuft",
+                "es": "Elevado"
+              }
+            },
+            {
+              "value": "downgraded",
+              "label": {
+                "en": "Downgraded",
+                "fr": "Abaissée",
+                "de": "Herabgestuft",
+                "es": "Rebajado"
+              }
+            },
+            {
+              "value": "updated",
+              "label": {
+                "en": "Updated (text or times)",
+                "fr": "Mise à jour (texte ou horaires)",
+                "de": "Aktualisiert (Text oder Zeiten)",
+                "es": "Actualizado (texto u horarios)"
+              }
+            },
+            {
+              "value": "lifted",
+              "label": {
+                "en": "Lifted or ended",
+                "fr": "Levée ou terminée",
+                "de": "Aufgehoben oder beendet",
+                "es": "Levantado o terminado"
+              }
+            }
+          ]
+        },
+        {
+          "key": "level",
+          "type": "multi_select",
+          "label": {
+            "en": "Level",
+            "fr": "Niveau",
+            "de": "Stufe",
+            "es": "Nivel"
+          },
+          "description": {
+            "en": "Leave empty for any level.",
+            "fr": "Laissez vide pour tout niveau.",
+            "de": "Leer lassen für jede Stufe.",
+            "es": "Déjelo vacío para cualquier nivel."
+          },
+          "required": false,
+          "options": [
+            {
+              "value": "yellow",
+              "label": {
+                "en": "Yellow",
+                "fr": "Jaune",
+                "de": "Gelb",
+                "es": "Amarillo"
+              }
+            },
+            {
+              "value": "orange",
+              "label": {
+                "en": "Orange",
+                "fr": "Orange",
+                "de": "Orange",
+                "es": "Naranja"
+              }
+            },
+            {
+              "value": "red",
+              "label": {
+                "en": "Red",
+                "fr": "Rouge",
+                "de": "Rot",
+                "es": "Rojo"
+              }
+            }
+          ]
+        },
+        {
+          "key": "warning_type",
+          "type": "multi_select",
+          "label": {
+            "en": "Phenomenon",
+            "fr": "Phénomène",
+            "de": "Phänomen",
+            "es": "Fenómeno"
+          },
+          "description": {
+            "en": "Leave empty for any phenomenon.",
+            "fr": "Laissez vide pour tout phénomène.",
+            "de": "Leer lassen für jedes Phänomen.",
+            "es": "Déjelo vacío para cualquier fenómeno."
+          },
+          "required": false,
+          "options": [
+            {
+              "value": "wind",
+              "label": {
+                "en": "Wind",
+                "fr": "Vent",
+                "de": "Wind",
+                "es": "Viento"
+              }
+            },
+            {
+              "value": "rain",
+              "label": {
+                "en": "Rain",
+                "fr": "Pluie",
+                "de": "Regen",
+                "es": "Lluvia"
+              }
+            },
+            {
+              "value": "snow",
+              "label": {
+                "en": "Snow and ice",
+                "fr": "Neige et verglas",
+                "de": "Schnee und Glätte",
+                "es": "Nieve y hielo"
+              }
+            },
+            {
+              "value": "thunderstorm",
+              "label": {
+                "en": "Thunderstorm",
+                "fr": "Orages",
+                "de": "Gewitter",
+                "es": "Tormentas"
+              }
+            },
+            {
+              "value": "fog",
+              "label": {
+                "en": "Fog",
+                "fr": "Brouillard",
+                "de": "Nebel",
+                "es": "Niebla"
+              }
+            },
+            {
+              "value": "cold",
+              "label": {
+                "en": "Low temperature",
+                "fr": "Grand froid",
+                "de": "Kälte",
+                "es": "Bajas temperaturas"
+              }
+            },
+            {
+              "value": "heat",
+              "label": {
+                "en": "High temperature",
+                "fr": "Fortes chaleurs",
+                "de": "Hitze",
+                "es": "Altas temperaturas"
+              }
+            },
+            {
+              "value": "coastal",
+              "label": {
+                "en": "Coastal",
+                "fr": "Vagues-submersion",
+                "de": "Küste",
+                "es": "Fenómenos costeros"
+              }
+            },
+            {
+              "value": "flood",
+              "label": {
+                "en": "Flood",
+                "fr": "Inondation",
+                "de": "Hochwasser",
+                "es": "Inundaciones"
+              }
+            },
+            {
+              "value": "other",
+              "label": {
+                "en": "Other",
+                "fr": "Autre",
+                "de": "Andere",
+                "es": "Otro"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "house_name",
+          "type": "string",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          }
+        },
+        {
+          "key": "county",
+          "type": "string",
+          "label": {
+            "en": "County",
+            "fr": "Comté",
+            "de": "County",
+            "es": "Condado"
+          }
+        },
+        {
+          "key": "change",
+          "type": "string",
+          "label": {
+            "en": "Change (issued, upgraded, downgraded, updated, lifted)",
+            "fr": "Changement (issued, upgraded, downgraded, updated, lifted)",
+            "de": "Änderung (issued, upgraded, downgraded, updated, lifted)",
+            "es": "Cambio (issued, upgraded, downgraded, updated, lifted)"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Level (yellow, orange, red)",
+            "fr": "Niveau (yellow, orange, red)",
+            "de": "Stufe (yellow, orange, red)",
+            "es": "Nivel (yellow, orange, red)"
+          }
+        },
+        {
+          "key": "warning_type",
+          "type": "string",
+          "label": {
+            "en": "Phenomenon (wind, rain, snow…)",
+            "fr": "Phénomène (wind, rain, snow…)",
+            "de": "Phänomen (wind, rain, snow…)",
+            "es": "Fenómeno (wind, rain, snow…)"
+          }
+        },
+        {
+          "key": "headline",
+          "type": "string",
+          "label": {
+            "en": "Headline (English)",
+            "fr": "Titre (en anglais)",
+            "de": "Überschrift (Englisch)",
+            "es": "Titular (en inglés)"
+          }
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "label": {
+            "en": "Details (English)",
+            "fr": "Détails (en anglais)",
+            "de": "Details (Englisch)",
+            "es": "Detalles (en inglés)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          },
+          "description": {
+            "en": "A sentence ready to put in a message.",
+            "fr": "Une phrase prête à mettre dans un message.",
+            "de": "Ein Satz, fertig für eine Nachricht.",
+            "es": "Una frase lista para poner en un mensaje."
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_precipitation_next_hour",
+      "label": {
+        "en": "Get the precipitation of the next hour",
+        "fr": "Obtenir les précipitations de l'heure à venir",
+        "de": "Niederschlag der nächsten Stunde abrufen",
+        "es": "Obtener la precipitación de la próxima hora"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Reads the hourly forecast of a house, to act if rain or snow is coming.",
+        "fr": "Lit la prévision horaire d'une maison, pour agir si de la pluie ou de la neige arrive.",
+        "de": "Liest die stündliche Vorhersage eines Zuhauses, um zu reagieren, wenn Regen oder Schnee kommt.",
+        "es": "Lee la previsión horaria de una vivienda, para actuar si llega lluvia o nieve."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
+          "key": "house",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          },
+          "description": {
+            "en": "Leave empty for your first house that has a location.",
+            "fr": "Laissez vide pour votre première maison qui a une position.",
+            "de": "Leer lassen für dein erstes Zuhause mit Standort.",
+            "es": "Déjelo vacío para su primera vivienda con ubicación."
+          },
+          "required": false
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "available",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Forecast available",
+            "fr": "Prévision disponible",
+            "de": "Vorhersage verfügbar",
+            "es": "Previsión disponible"
+          }
+        },
+        {
+          "key": "precipitation_expected",
+          "type": "boolean",
+          "label": {
+            "en": "Precipitation expected",
+            "fr": "Précipitations attendues",
+            "de": "Niederschlag erwartet",
+            "es": "Precipitación prevista"
+          }
+        },
+        {
+          "key": "minutes_until",
+          "type": "number",
+          "label": {
+            "en": "Minutes until it starts",
+            "fr": "Minutes avant le début",
+            "de": "Minuten bis zum Beginn",
+            "es": "Minutos hasta el inicio"
+          }
+        },
+        {
+          "key": "precipitation_type",
+          "type": "string",
+          "label": {
+            "en": "Precipitation (rain, sleet, snow)",
+            "fr": "Précipitations (rain, sleet, snow)",
+            "de": "Niederschlag (rain, sleet, snow)",
+            "es": "Precipitación (rain, sleet, snow)"
+          }
+        },
+        {
+          "key": "intensity",
+          "type": "string",
+          "label": {
+            "en": "Intensity (light, moderate, heavy)",
+            "fr": "Intensité (light, moderate, heavy)",
+            "de": "Intensität (light, moderate, heavy)",
+            "es": "Intensidad (light, moderate, heavy)"
+          }
+        },
+        {
+          "key": "thunder",
+          "type": "boolean",
+          "label": {
+            "en": "With thunder",
+            "fr": "Avec orage",
+            "de": "Mit Gewitter",
+            "es": "Con tormenta"
+          }
+        },
+        {
+          "key": "precipitation",
+          "type": "number",
+          "label": {
+            "en": "Precipitation in that hour (mm or in)",
+            "fr": "Précipitations de cette heure (mm ou in)",
+            "de": "Niederschlag in dieser Stunde (mm oder in)",
+            "es": "Precipitación en esa hora (mm o in)"
+          }
+        },
+        {
+          "key": "probability",
+          "type": "number",
+          "label": {
+            "en": "Probability (%)",
+            "fr": "Probabilité (%)",
+            "de": "Wahrscheinlichkeit (%)",
+            "es": "Probabilidad (%)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
         }
       ]
-    }
-  ],
-  "widgets": [
+    },
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "get_day_forecast",
+      "label": {
+        "en": "Get the forecast of the day",
+        "fr": "Obtenir la prévision du jour",
+        "de": "Tagesvorhersage abrufen",
+        "es": "Obtener la previsión del día"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Reads today's or tomorrow's forecast of a house: sky, temperatures, precipitation, wind.",
+        "fr": "Lit la prévision d'aujourd'hui ou de demain d'une maison : ciel, températures, précipitations, vent.",
+        "de": "Liest die Vorhersage für heute oder morgen eines Zuhauses: Himmel, Temperaturen, Niederschlag, Wind.",
+        "es": "Lee la previsión de hoy o de mañana de una vivienda: cielo, temperaturas, precipitación, viento."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "house",
+          "type": "select",
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          },
+          "description": {
+            "en": "Leave empty for your first house that has a location.",
+            "fr": "Laissez vide pour votre première maison qui a une position.",
+            "de": "Leer lassen für dein erstes Zuhause mit Standort.",
+            "es": "Déjelo vacío para su primera vivienda con ubicación."
+          },
+          "required": false
+        },
+        {
+          "key": "day",
+          "type": "select",
+          "label": {
+            "en": "Day",
+            "fr": "Jour",
+            "de": "Tag",
+            "es": "Día"
+          },
+          "description": {
+            "en": "Today covers the rest of the day.",
+            "fr": "Aujourd'hui couvre le reste de la journée.",
+            "de": "Heute umfasst den Rest des Tages.",
+            "es": "Hoy cubre el resto del día."
+          },
+          "required": false,
+          "default": "today",
+          "options": [
+            {
+              "value": "today",
+              "label": {
+                "en": "Today",
+                "fr": "Aujourd'hui",
+                "de": "Heute",
+                "es": "Hoy"
+              }
+            },
+            {
+              "value": "tomorrow",
+              "label": {
+                "en": "Tomorrow",
+                "fr": "Demain",
+                "de": "Morgen",
+                "es": "Mañana"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "key": "available",
+          "type": "boolean",
+          "label": {
+            "en": "Forecast available",
+            "fr": "Prévision disponible",
+            "de": "Vorhersage verfügbar",
+            "es": "Previsión disponible"
+          }
+        },
+        {
+          "key": "condition",
+          "type": "string",
+          "label": {
+            "en": "Sky (Gladys code: clear, rain…)",
+            "fr": "Ciel (code Gladys : clear, rain…)",
+            "de": "Himmel (Gladys-Code: clear, rain…)",
+            "es": "Cielo (código Gladys: clear, rain…)"
+          }
+        },
+        {
+          "key": "condition_name",
+          "type": "string",
+          "label": {
+            "en": "Sky, in words",
+            "fr": "Ciel, en toutes lettres",
+            "de": "Himmel, in Worten",
+            "es": "Cielo, en palabras"
+          }
+        },
+        {
+          "key": "temperature_min",
+          "type": "number",
+          "label": {
+            "en": "Minimum temperature",
+            "fr": "Température minimale",
+            "de": "Tiefsttemperatur",
+            "es": "Temperatura mínima"
+          }
+        },
+        {
+          "key": "temperature_max",
+          "type": "number",
+          "label": {
+            "en": "Maximum temperature",
+            "fr": "Température maximale",
+            "de": "Höchsttemperatur",
+            "es": "Temperatura máxima"
+          }
+        },
+        {
+          "key": "precipitation",
+          "type": "number",
+          "label": {
+            "en": "Precipitation (mm or in)",
+            "fr": "Précipitations (mm ou in)",
+            "de": "Niederschlag (mm oder in)",
+            "es": "Precipitación (mm o in)"
+          }
+        },
+        {
+          "key": "precipitation_probability",
+          "type": "number",
+          "label": {
+            "en": "Probability (%)",
+            "fr": "Probabilité (%)",
+            "de": "Wahrscheinlichkeit (%)",
+            "es": "Probabilidad (%)"
+          }
+        },
+        {
+          "key": "wind_speed",
+          "type": "number",
+          "label": {
+            "en": "Strongest wind (m/s or mph)",
+            "fr": "Vent le plus fort (m/s ou mph)",
+            "de": "Stärkster Wind (m/s oder mph)",
+            "es": "Viento más fuerte (m/s o mph)"
+          }
+        },
+        {
+          "key": "wind_gust",
+          "type": "number",
+          "label": {
+            "en": "Strongest gust (m/s or mph)",
+            "fr": "Rafale la plus forte (m/s ou mph)",
+            "de": "Stärkste Böe (m/s oder mph)",
+            "es": "Ráfaga más fuerte (m/s o mph)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          },
+          "description": {
+            "en": "A sentence ready to put in a message.",
+            "fr": "Une phrase prête à mettre dans un message.",
+            "de": "Ein Satz, fertig für eine Nachricht.",
+            "es": "Una frase lista para poner en un mensaje."
+          }
+        }
+      ]
+    },
+    {
+      "key": "get_warnings",
+      "label": {
+        "en": "Get the Met Éireann warnings",
+        "fr": "Obtenir les vigilances Met Éireann",
+        "de": "Warnungen von Met Éireann abrufen",
+        "es": "Obtener los avisos de Met Éireann"
+      },
+      "description": {
+        "en": "Reads the warnings of the county of a house, in force or announced, to act on the highest level.",
+        "fr": "Lit les vigilances du comté d’une maison, en cours ou annoncées, pour agir selon le niveau le plus haut.",
+        "de": "Liest die Warnungen des Countys eines Zuhauses, aktuell oder angekündigt, um nach der höchsten Stufe zu handeln.",
+        "es": "Lee los avisos del condado de una vivienda, vigentes o anunciados, para actuar según el nivel más alto."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "house",
+          "type": "select",
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Zuhause",
+            "es": "Vivienda"
+          },
+          "description": {
+            "en": "Leave empty for your first house that has a location.",
+            "fr": "Laissez vide pour votre première maison qui a une position.",
+            "de": "Leer lassen für dein erstes Zuhause mit Standort.",
+            "es": "Déjelo vacío para su primera vivienda con ubicación."
+          },
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "key": "available",
+          "type": "boolean",
+          "label": {
+            "en": "Warnings available",
+            "fr": "Vigilances disponibles",
+            "de": "Warnungen verfügbar",
+            "es": "Avisos disponibles"
+          }
+        },
+        {
+          "key": "county",
+          "type": "string",
+          "label": {
+            "en": "County",
+            "fr": "Comté",
+            "de": "County",
+            "es": "Condado"
+          }
+        },
+        {
+          "key": "has_warning",
+          "type": "boolean",
+          "label": {
+            "en": "At least one warning",
+            "fr": "Au moins une vigilance",
+            "de": "Mindestens eine Warnung",
+            "es": "Al menos un aviso"
+          }
+        },
+        {
+          "key": "warning_count",
+          "type": "number",
+          "label": {
+            "en": "Number of warnings",
+            "fr": "Nombre de vigilances",
+            "de": "Anzahl der Warnungen",
+            "es": "Número de avisos"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Highest level (none, yellow, orange, red)",
+            "fr": "Niveau le plus haut (none, yellow, orange, red)",
+            "de": "Höchste Stufe (none, yellow, orange, red)",
+            "es": "Nivel más alto (none, yellow, orange, red)"
+          }
+        },
+        {
+          "key": "in_effect",
+          "type": "boolean",
+          "label": {
+            "en": "A warning is in effect now",
+            "fr": "Une vigilance est en cours",
+            "de": "Eine Warnung gilt gerade",
+            "es": "Un aviso está vigente ahora"
+          }
+        },
+        {
+          "key": "warning_type",
+          "type": "string",
+          "label": {
+            "en": "Phenomenon of the highest (wind, rain…)",
+            "fr": "Phénomène de la plus haute (wind, rain…)",
+            "de": "Phänomen der höchsten (wind, rain…)",
+            "es": "Fenómeno del más alto (wind, rain…)"
+          }
+        },
+        {
+          "key": "headline",
+          "type": "string",
+          "label": {
+            "en": "Headline of the highest (English)",
+            "fr": "Titre de la plus haute (en anglais)",
+            "de": "Überschrift der höchsten (Englisch)",
+            "es": "Titular del más alto (en inglés)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          },
+          "description": {
+            "en": "A sentence ready to put in a message.",
+            "fr": "Une phrase prête à mettre dans un message.",
+            "de": "Ein Satz, fertig für eine Nachricht.",
+            "es": "Una frase lista para poner en un mensaje."
+          }
+        }
+      ]
     }
   ]
 }
