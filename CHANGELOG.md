@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-23
+
 ### Added
 
 - Met Éireann weather for Gladys (Gladys 5.2.0 or later): current conditions,
@@ -31,4 +33,5 @@ the notes of the version's GitHub Release.
   or chosen), units and language of the scene texts. A "Test Met Éireann"
   button.
 
-[Unreleased]: https://github.com/guim31/gladys-met-eireann/commits/main
+[Unreleased]: https://github.com/guim31/gladys-met-eireann/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-met-eireann/releases/tag/v1.0.0
