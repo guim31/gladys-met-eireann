@@ -48,6 +48,11 @@ test('cities and villages land in their county', () => {
     [53.1155, -9.6704, 'EI10'], // Inis Mór
     [51.62, -9.0, 'EI04'], // Rosscarbery
     [54.15, -6.95, 'EI22'], // near Castleblayney
+    [54.478, -8.281, 'EI06'], // Bundoran
+    [54.074, -7.083, 'EI02'], // Cootehill
+    [53.366, -6.496, 'EI12'], // Leixlip
+    [52.808, -8.433, 'EI26'], // Ballina, Tipperary
+    [52.807, -8.448, 'EI03'], // Killaloe, across the bridge
   ];
   for (const [latitude, longitude, code] of places) {
     assert.equal(countyOf(latitude, longitude), code, `${latitude}, ${longitude}`);

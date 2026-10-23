@@ -91,6 +91,25 @@ test('the precipitation timeline covers the forecast without gap nor overlap', (
   assert.deepEqual([...new Set(periods.map((period) => period.hours))], [1, 3, 6]);
 });
 
+test('the symbol of a day is the one of its noon period, whatever the step', () => {
+  const forecast = forecastOf(HOUSES.galway.fixture);
+  const days = buildDays(forecast, {
+    latitude: HOUSES.galway.latitude,
+    longitude: HOUSES.galway.longitude,
+    timeZone: TZ,
+  });
+  // Days of 24 hours (Ireland leaves summer time on 25 October 2026).
+  for (const day of days.filter((candidate) => candidate.end - candidate.start === 24 * HOUR_MS)) {
+    const noon = day.start + 12 * HOUR_MS;
+    const period = precipitationTimeline(forecast.points).find(
+      (candidate) => candidate.start <= noon && noon < candidate.end,
+    );
+    if (period !== undefined) {
+      assert.equal(day.symbol, period.symbol, new Date(day.start).toISOString());
+    }
+  }
+});
+
 test('days sum the periods, pick the noon symbol, and drop a last day barely entered', () => {
   const forecast = forecastOf(HOUSES.cork.fixture);
   const days = buildDays(forecast, {

@@ -37,6 +37,9 @@ const DEFAULT_EXPIRY_MS = 30 * 60 * 1000;
 const THROTTLE_FIRST_MS = 10 * 60 * 1000;
 const THROTTLE_MAX_MS = 2 * 60 * 60 * 1000;
 const FORBIDDEN_BLOCK_MS = 6 * 60 * 60 * 1000;
+// A location without forecast (outside the domain of the models) is not
+// asked again for this long.
+const NO_FORECAST_MS = DEFAULT_EXPIRY_MS;
 
 /**
  * @description The cache key of a location: the coordinates as sent (4
@@ -70,6 +73,8 @@ function createForecastStore({
   const entries = new Map();
   // key -> Promise of the call under way
   const inflight = new Map();
+  // key -> { until, error } of the locations Met Éireann has no forecast for
+  const missing = new Map();
   // { kind, message, at } of the last failed call, null after a success.
   let lastError = null;
   let blockedUntil = 0;
@@ -101,7 +106,7 @@ function createForecastStore({
    * @example
    * recordFailure(err);
    */
-  function recordFailure(err) {
+  function recordFailure(err, key) {
     const kind = err.kind ?? ERROR_KINDS.NETWORK;
     lastError = { kind, message: err.message, at: now() };
     if (kind === ERROR_KINDS.THROTTLED) {
@@ -121,8 +126,18 @@ function createForecastStore({
         kind,
         level: 'error',
       });
+    } else if (kind === ERROR_KINDS.INVALID) {
+      // Usually a house outside the domain of the models: not an outage, and
+      // not asked again before 30 minutes.
+      missing.set(key, { until: now() + NO_FORECAST_MS, error: err });
+      failures.fail(`met:${key}`, `No usable Met Éireann forecast for a house: ${err.message}`, {
+        kind,
+        level: 'info',
+      });
     } else {
-      failures.fail('met', `Met Éireann request failed: ${err.message}`, { kind });
+      // One key per location: a house that fails must not hide, or be hidden
+      // by, one that works.
+      failures.fail(`met:${key}`, `Met Éireann request failed: ${err.message}`, { kind });
     }
   }
 
@@ -147,6 +162,10 @@ function createForecastStore({
     if (pending !== undefined) {
       return pending;
     }
+    const absent = missing.get(key);
+    if (absent !== undefined && absent.until > now()) {
+      return Promise.reject(absent.error);
+    }
     const blocked = blockedError();
     if (blocked !== null) {
       return Promise.reject(blocked);
@@ -164,12 +183,14 @@ function createForecastStore({
         const at = now();
         const entry = { forecast, fetchedAt: at, checkedAt: at, expiresAt: at + DEFAULT_EXPIRY_MS };
         entries.set(key, entry);
+        missing.delete(key);
         lastError = null;
         throttleMs = THROTTLE_FIRST_MS;
         failures.recover('met', 'Met Éireann answers again');
+        failures.recover(`met:${key}`, 'Met Éireann answers again');
         return entry;
       } catch (err) {
-        recordFailure(err);
+        recordFailure(err, key);
         throw err;
       } finally {
         inflight.delete(key);
@@ -252,6 +273,11 @@ function createForecastStore({
     for (const [key, entry] of entries) {
       if (!keep.has(key) && now() - entry.checkedAt > STALE_MAX_MS) {
         entries.delete(key);
+      }
+    }
+    for (const [key, absent] of missing) {
+      if (absent.until <= now()) {
+        missing.delete(key);
       }
     }
   }

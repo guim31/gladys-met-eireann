@@ -273,8 +273,11 @@ MeteoAlarm). Réponses réelles du 23/10/2026 (tempête Boelo) dans `test/fixtur
   « l'heure à venir » n'est jamais disponible.
 - Symboles : les **anciens numéros** MET Norway (1 Sun … 50 HeavySnow), sans variante jour/nuit :
   convertis par la colonne `Old ID` de la légende (testé), jour/nuit par le soleil calculé.
+- **Pluie : Met Éireann nomme ses symboles un cran plus faible que la légende MET Norway** (10 =
+  « Rain » et non heavyrain, 9 = « LightRain », 41 = « RainSun ») : ses heures « Rain » font 1 à
+  5,5 mm. `MET_EIREANN_RAIN` (forecast.js) suit ses noms, sinon tout s'affiche « Fortes pluies ».
 - Hors du domaine (Paris, New York) : **200** avec `<product/>` vide → « pas de prévision », le
-  cœur passe au fournisseur suivant. Londres n'a que l'ECMWF, Belfast a HARMONIE.
+  cœur passe au fournisseur suivant ; mémorisé 30 min par position, journalisé une fois en info. Londres n'a que l'ECMWF, Belfast a HARMONIE.
 - HTTPS existe mais redirige (301) vers un hôte Azure interne : on garde l'adresse HTTP
   documentée.
 - **`id` d'une vigilance n'est pas un identifiant** : c'est le rang dans la liste (les mêmes cinq

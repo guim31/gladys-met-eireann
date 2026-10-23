@@ -1,24 +1,21 @@
 // -----------------------------------------------------------------------------
 // Precipitation within the hour, from the hourly part of the forecast.
 //
-// MET Norway's finest step outside the Nordic countries is the hour: each
-// hourly instant has a `next_1_hours` with the amount of precipitation (mm)
+// The finest step of Met Éireann is the hour (for about 3 days): each hourly
+// point has a period with the amount of precipitation (mm), its probability
 // and the symbol of that hour. "Within the hour" therefore reads two hours:
 // the one under way and the next one — at 15:05, 15:00-16:00 and 16:00-17:00
 // (the latter starts in 55 minutes); at 15:55, the next one starts in 5.
 //
-// An hour is wet from 0.1 mm, the resolution of the API. What falls comes from
-// the symbol (rain, sleet or snow, with or without thunder); a wet hour whose
-// symbol shows no precipitation (a trace under a cloudy symbol) is snow at or
-// below 0 °C, rain above. The intensity is MET's own word in the symbol
-// (light, heavy, or neither: moderate), else the amount: light under
-// 2.5 mm/h, moderate up to 7.6 mm/h, heavy above — the usual rainfall rates.
+// An hour is wet from 0.1 mm. What falls comes from the symbol (rain, sleet
+// or snow, with or without thunder); a wet hour whose symbol shows no
+// precipitation (a trace under a cloudy symbol) is snow at or below 0 °C,
+// rain above. The intensity is the word of the symbol (light, heavy, or
+// neither: moderate), else the amount: light under 2.5 mm/h, moderate up to
+// 7.6 mm/h, heavy above — the usual rainfall rates.
 //
-// The probability of precipitation exists only where MET runs its ensemble
-// models (the Nordic countries): elsewhere it is left out.
-//
-// Nowcast 2.0, minute by minute from the radars, also only covers the Nordic
-// countries: it is not used, so the start is given to the hour.
+// No minute-by-minute nowcast in the open data: the start is given to the
+// hour.
 //
 // A forecast without an hourly step covering now is "not available": the
 // trigger stays silent and the scene action says so, instead of reading

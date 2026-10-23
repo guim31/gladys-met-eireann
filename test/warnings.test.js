@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WEATHER_ALERT_SEVERITIES, WEATHER_ALERT_TYPES } from '@gladysassistant/integration-sdk';
 import {
+  RETRY_AFTER_FAILURE_MS,
   WARNINGS_MAX_AGE_MS,
   createWarningStore,
   diffWarnings,
@@ -185,5 +186,17 @@ test('a 429 pauses the warning calls for an hour', async () => {
   assert.equal(fetchImpl.calls.length, 1);
   now.advance(31 * 60 * 1000);
   await assert.rejects(store.refresh());
+  assert.equal(fetchImpl.calls.length, 2);
+});
+
+test('after a failure, readers do not call again for 5 minutes', async () => {
+  const now = manualClock(FIXTURE_NOW);
+  const fetchImpl = fakeFetch(() => ({ status: 503, body: '' }));
+  const store = createWarningStore({ fetchImpl, now, logger: silentLogger() });
+  assert.equal(await store.load(), null);
+  assert.equal(await store.load(), null);
+  assert.equal(fetchImpl.calls.length, 1, 'a dashboard open does not wait 10 s again');
+  now.advance(RETRY_AFTER_FAILURE_MS);
+  await store.load();
   assert.equal(fetchImpl.calls.length, 2);
 });

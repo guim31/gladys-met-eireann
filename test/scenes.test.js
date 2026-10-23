@@ -57,7 +57,7 @@ test('rain at 19:00 is announced 50 minutes ahead, with its probability', () => 
   assert.equal(outputs.precipitation_type, 'rain');
   assert.equal(outputs.precipitation, 1.2);
   assert.equal(outputs.probability, 80);
-  assert.equal(outputs.summary, 'Moderate rain expected in 50 minutes (80% chance).');
+  assert.equal(outputs.summary, 'Light rain expected in 50 minutes (80% chance).');
 });
 
 test('the forecast of tomorrow, in German', () => {

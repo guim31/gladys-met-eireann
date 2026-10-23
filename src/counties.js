@@ -60,6 +60,8 @@ const TOWNS = Object.freeze([
   ['EI02', 53.834, -7.078], // Virginia
   ['EI02', 53.865, -7.29], // Ballyjamesduff
   ['EI02', 54.08, -7.73], // Ballyconnell
+  ['EI02', 54.074, -7.083], // Cootehill
+  ['EI02', 53.97, -7.05], // Shercock
   ['EI03', 52.843, -8.986], // Ennis
   ['EI03', 52.64, -9.483], // Kilrush
   ['EI03', 53.03, -9.29], // Lisdoonvarna
@@ -67,7 +69,8 @@ const TOWNS = Object.freeze([
   ['EI03', 52.703, -8.864], // Shannon
   ['EI03', 52.682, -9.645], // Kilkee
   ['EI03', 52.94, -9.35], // Lahinch
-  ['EI03', 52.71, -8.62], // Killaloe side (Ballina)
+  ['EI03', 52.807, -8.448], // Killaloe
+  ['EI03', 52.75, -8.75], // Sixmilebridge
   ['EI04', 51.898, -8.476], // Cork
   ['EI04', 52.139, -8.645], // Mallow
   ['EI04', 51.68, -9.453], // Bantry
@@ -94,6 +97,7 @@ const TOWNS = Object.freeze([
   ['EI06', 54.834, -7.484], // Lifford
   ['EI06', 54.67, -7.62], // Ballybofey
   ['EI06', 54.98, -7.43], // Bridgend
+  ['EI06', 54.478, -8.281], // Bundoran
   ['EI07', 53.35, -6.26], // Dublin
   ['EI07', 53.46, -6.218], // Swords
   ['EI07', 53.288, -6.373], // Tallaght
@@ -132,6 +136,8 @@ const TOWNS = Object.freeze([
   ['EI12', 53.157, -6.911], // Kildare
   ['EI12', 53.4, -6.67], // Kilcock
   ['EI12', 53.35, -6.95], // Carbury
+  ['EI12', 53.366, -6.496], // Leixlip
+  ['EI12', 53.34, -6.538], // Celbridge
   ['EI13', 52.654, -7.244], // Kilkenny
   ['EI13', 52.526, -7.137], // Thomastown
   ['EI13', 52.806, -7.211], // Castlecomer
@@ -226,6 +232,7 @@ const TOWNS = Object.freeze([
   ['EI26', 53.0, -8.13], // Borrisokane
   ['EI26', 52.795, -7.833], // Templemore
   ['EI26', 52.6, -7.55], // Killenaule
+  ['EI26', 52.808, -8.433], // Ballina (Tipperary)
   ['EI27', 52.259, -7.11], // Waterford
   ['EI27', 52.088, -7.626], // Dungarvan
   ['EI27', 52.137, -7.931], // Lismore

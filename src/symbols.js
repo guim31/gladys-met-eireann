@@ -1,8 +1,9 @@
 // -----------------------------------------------------------------------------
 // MET Norway weather symbols → Gladys weather conditions.
 //
-// Every period of the forecast (`next_1_hours`, `next_6_hours`,
-// `next_12_hours`) carries a `symbol_code`: one of the 41 symbols of the
+// Met Éireann sends MET Norway's legacy symbol numbers, turned into these
+// codes by forecast.js, without day/night suffix. Each code is one of the 41
+// symbols of the
 // official legend (https://github.com/metno/weathericons, weather/legend.csv,
 // also https://api.met.no/weatherapi/weathericon/2.0/documentation). The 21
 // symbols drawn with a sun or a moon come in three variants, `_day`,
@@ -25,9 +26,10 @@
 //   *rain*andthunder, *sleet*andthunder     thunderstorm
 //   *snow*andthunder                        snow-thunderstorm
 //
-// The suffix is the day/night signal of MET: `_day` is day, `_night` and
-// `_polartwilight` are night (the sun is down). The pivot carries it in
-// `is_day`, never as the deprecated `night` condition.
+// The suffix, when a code has one, is the day/night signal of MET: `_day` is
+// day, `_night` and `_polartwilight` are night. Met Éireann's codes have none:
+// the pivot's `is_day` comes from the computed sun (sun.js), never as the
+// deprecated `night` condition.
 //
 // A code unknown to this table (a symbol added after this code) falls back to
 // the cloud cover, so the core never receives a condition it would turn into

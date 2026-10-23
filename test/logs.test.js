@@ -132,3 +132,39 @@ test('a repeated failure of another kind warns again', async () => {
   assert.match(logger.at('warn')[2], /429/);
   assert.match(logger.at('warn')[3], /429/);
 });
+
+test('a house outside the domain beside one in Ireland: logged once, asked every 30 minutes', async () => {
+  const now = manualClock(FIXTURE_NOW);
+  const fetchImpl = fakeFetch(meRoute());
+  const gladys = createFakeGladys({
+    houses: [asGladysHouse(HOUSES.dublin), asGladysHouse(HOUSES.paris)],
+  });
+  const logger = recordingLogger();
+  const app = createApp(gladys, {
+    fetchImpl,
+    now,
+    random: () => 0,
+    timeZone: 'Europe/Dublin',
+    logger,
+    setTimer: () => ({}),
+    clearTimer: () => {},
+  });
+  await gladys.connect();
+  await app.scheduler.settled();
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    now.advance(31 * 60 * 1000);
+    await app.scheduler.requestCycle();
+  }
+  assert.equal(logger.at('info').filter((line) => /forecast for a house/.test(line)).length, 1);
+  assert.deepEqual(logger.at('warn'), []);
+  assert.ok(!logger.at('info').includes('Met Éireann answers again'), 'no flapping');
+  // The core asks for Paris: answered from the "no forecast" memory.
+  const calls = fetchImpl.calls.length;
+  await gladys.fake.weatherGet({
+    latitude: HOUSES.paris.latitude,
+    longitude: HOUSES.paris.longitude,
+    language: 'en',
+    units: 'metric',
+  });
+  assert.equal(fetchImpl.calls.length, calls);
+});

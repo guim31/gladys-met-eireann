@@ -7,12 +7,12 @@
 // and when. The event carries the filters of the scene card (house, type,
 // intensity) and the variables a scene can put in a message.
 //
-// The reading is redone on every cycle, even when MET Norway answered 304:
-// the forecast did not change, but the hour did — rain forecast at 17:00 is
+// The reading is redone on every cycle, even when the forecast did not
+// change: the hour did — rain forecast at 17:00 is
 // "within the hour" from 16:00 on.
 //
-// What it is not: a radar. MET Norway's step is the hour outside the Nordic
-// countries, and the reading follows the refresh cadence (about 30 minutes):
+// What it is not: a radar. Met Éireann's finest step is the hour,
+// and the reading follows the refresh cadence (about 30 minutes):
 // a shower that starts between two refreshes is announced by the next one,
 // as "now" (`minutes_until` 0).
 //
@@ -125,7 +125,7 @@ function createPrecipitationWatcher({
 
   /**
    * @description Forget everything: the next reading of each house is a new
-   * baseline (another altitude, for instance).
+   * baseline.
    * @example
    * watcher.reset();
    */

@@ -16,7 +16,7 @@ import {
   skyCondition,
   toCondition,
 } from '../src/symbols.js';
-import { LEGACY_SYMBOLS } from '../src/forecast.js';
+import { LEGACY_SYMBOLS, MET_EIREANN_RAIN, legacySymbol } from '../src/forecast.js';
 import { HOUSES, loadText } from './helpers/fixtures.js';
 
 const legend = readFileSync(new URL('./fixtures/weathericons-legend.csv', import.meta.url), 'utf8')
@@ -132,6 +132,16 @@ test('the legacy numbers of Met Éireann are the Old ID column of the legend', (
     Object.fromEntries(Object.entries(LEGACY_SYMBOLS).map(([number, id]) => [Number(number), id])),
     Object.fromEntries(legend.map(({ id, oldId }) => [oldId, id])),
   );
+});
+
+test('Met Éireann rain symbols keep its own intensity, not the one of the legend', () => {
+  assert.equal(legacySymbol('10'), 'rain', 'its "Rain"');
+  assert.equal(legacySymbol('9'), 'lightrain', 'its "LightRain"');
+  assert.equal(legacySymbol('41'), 'rainshowers', 'its "RainSun"');
+  assert.equal(toCondition(legacySymbol('10')), C.RAIN, 'not pouring');
+  for (const code of Object.values(MET_EIREANN_RAIN)) {
+    assert.equal(describeSymbol(code).known, true, code);
+  }
 });
 
 test('every symbol of the real responses is a known legacy number', () => {

@@ -56,6 +56,9 @@ const CHANGES = Object.freeze({
 const WARNINGS_MAX_AGE_MS = 30 * 60 * 1000;
 const STALE_MAX_MS = 3 * 60 * 60 * 1000;
 const THROTTLE_MS = 60 * 60 * 1000;
+// After any other failure, readers wait this long before calling again: an
+// unreachable www.met.ie must not cost 10 s to every weather request.
+const RETRY_AFTER_FAILURE_MS = 5 * 60 * 1000;
 
 /**
  * @description The phenomenon of a Met Éireann warning type.
@@ -291,6 +294,7 @@ function createWarningStore({
   let entry = null; // { raw, fetchedAt }
   let inflight = null;
   let blockedUntil = 0;
+  let blockedKind = ERROR_KINDS.NETWORK;
   const failures = createFailureLog(logger);
 
   /**
@@ -308,9 +312,7 @@ function createWarningStore({
       return inflight;
     }
     if (blockedUntil > now()) {
-      return Promise.reject(
-        new MetEireannError(ERROR_KINDS.THROTTLED, 'Met Éireann warning calls paused'),
-      );
+      return Promise.reject(new MetEireannError(blockedKind, 'Met Éireann warning calls paused'));
     }
     inflight = (async () => {
       try {
@@ -319,9 +321,11 @@ function createWarningStore({
         failures.recover('warnings', 'The Met Éireann warnings are readable again');
         return entry;
       } catch (err) {
-        if (err.kind === ERROR_KINDS.THROTTLED || err.kind === ERROR_KINDS.FORBIDDEN) {
-          blockedUntil = now() + Math.max(err.retryAfterMs ?? 0, THROTTLE_MS);
-        }
+        blockedKind = err.kind ?? ERROR_KINDS.NETWORK;
+        blockedUntil =
+          blockedKind === ERROR_KINDS.THROTTLED || blockedKind === ERROR_KINDS.FORBIDDEN
+            ? now() + Math.max(err.retryAfterMs ?? 0, THROTTLE_MS)
+            : now() + RETRY_AFTER_FAILURE_MS;
         failures.fail('warnings', `Met Éireann warnings unavailable: ${err.message}`, {
           kind: err.kind,
         });
@@ -334,13 +338,17 @@ function createWarningStore({
   }
 
   /**
-   * @description The parsed warnings for a reader: a fresh list when
-   * possible, else one up to 3 hours old, else null.
+   * @description The parsed warnings for a reader: the list in memory when
+   * there is a recent one (the scheduler reads it every 30 minutes), else a
+   * call, else a list up to 3 hours old, else null.
    * @returns {Promise<Array<object>|null>} The warnings, or null when unknown.
    * @example
    * await warnings.load();
    */
   async function load() {
+    if (entry !== null && now() - entry.fetchedAt < WARNINGS_MAX_AGE_MS + 10 * 60 * 1000) {
+      return parseWarnings(entry.raw, now());
+    }
     try {
       return parseWarnings((await refresh()).raw, now());
     } catch {
@@ -365,6 +373,7 @@ function createWarningStore({
 }
 
 export {
+  RETRY_AFTER_FAILURE_MS,
   CHANGES,
   LEVELS,
   SEVERITIES,

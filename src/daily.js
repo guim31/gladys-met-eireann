@@ -10,8 +10,8 @@
 //   precipitation the sum of the periods (1, 3 or 6 hours, without
 //                 overlap), each counted in the day holding its middle;
 //   probability   the highest probability of those periods;
-//   condition     the symbol of the longest period centred nearest local
-//                 noon (the daytime weather);
+//   condition     the symbol of the period holding local noon (the daytime
+//                 weather), else of the period nearest to it;
 //   wind          the strongest wind of the instants, its direction, and the
 //                 strongest gust;
 //   sun           sunrise and sunset, computed (sun.js).
@@ -22,7 +22,7 @@
 
 import { toCondition } from './symbols.js';
 import { sunTimes } from './sun.js';
-import { HOUR_MS, nextDayStart, startOfDay } from './time.js';
+import { HOUR_MS, nextDayStart, offsetMs, startOfDay } from './time.js';
 
 /**
  * @description The precipitation timeline: the period of each instant, in
@@ -146,7 +146,7 @@ function buildDays(forecast, { latitude, longitude, timeZone }) {
     const middle = (period.start + period.end) / 2;
     const day = dayOf(middle);
     if (period.symbol !== null) {
-      day.symbols.push({ middle, symbol: period.symbol, hours: period.hours });
+      day.symbols.push({ ...period, middle });
     }
     if (period.precipitation !== null) {
       day.precipitation = (day.precipitation ?? 0) + period.precipitation;
@@ -162,13 +162,18 @@ function buildDays(forecast, { latitude, longitude, timeZone }) {
     .sort((a, b) => a.start - b.start)
     .filter((day, index) => index === 0 || coveredUntil >= day.end)
     .map((day) => {
-      // Local noon: 12 hours after midnight, but within the day of 23 or
-      // 25 hours of a daylight saving switch.
-      const noon = Math.min(day.start + 12 * HOUR_MS, day.end - HOUR_MS);
-      // A 6-hour period describes the daytime better than one hour: prefer
-      // the longest, then the nearest to noon.
+      // Local noon: 12 wall-clock hours after midnight, also on the days of
+      // 23 or 25 hours of a daylight saving switch.
+      const noon =
+        day.start +
+        12 * HOUR_MS +
+        offsetMs(day.start, timeZone) -
+        offsetMs(day.start + 12 * HOUR_MS, timeZone);
+      // The period holding noon, else the nearest: on the day the forecast
+      // turns 3-hourly, an evening 3-hour period must not beat the noon hour.
+      const holds = (period) => (period.start <= noon && noon < period.end ? 0 : 1);
       const [best] = [...day.symbols].sort(
-        (a, b) => b.hours - a.hours || Math.abs(a.middle - noon) - Math.abs(b.middle - noon),
+        (a, b) => holds(a) - holds(b) || Math.abs(a.middle - noon) - Math.abs(b.middle - noon),
       );
       const symbol = best?.symbol ?? null;
       const { sunrise, sunset } = sunTimes(day.start, day.end, latitude, longitude);

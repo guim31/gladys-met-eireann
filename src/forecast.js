@@ -20,7 +20,9 @@
 //
 // The symbols are MET Norway's legacy numbers (1 Sun … 50 HeavySnow), turned
 // into the current `symbol_code` names (symbols.js) by the official legend
-// (`Old ID` column of MET Norway's weathericons legend).
+// (`Old ID` column of MET Norway's weathericons legend) — except the rain
+// ones, which Met Éireann names one step lighter than MET Norway's legend
+// (MET_EIREANN_RAIN below).
 //
 // Outside the domain of the models (far from Ireland), the answer is an empty
 // `<product/>`: no forecast for this location.
@@ -76,6 +78,22 @@ const LEGACY_SYMBOLS = Object.freeze({
   50: 'heavysnow',
 });
 
+// Met Éireann's own names of the rain symbols (the `id` attribute) are one
+// intensity lighter than the legend: its 10 is "Rain" (the legend:
+// heavyrain), its 9 "LightRain" (the legend: rain). Measured on the answers
+// of 2026-10-23: its "Rain" hours carry 1.0 to 5.5 mm, ordinary rain. Its
+// names win, as in Home Assistant (`met_eireann`: Rain → rainy, not pouring).
+const MET_EIREANN_RAIN = Object.freeze({
+  5: 'lightrainshowers', // LightRainSun
+  6: 'lightrainshowersandthunder', // LightRainThunderSun
+  9: 'lightrain', // LightRain
+  10: 'rain', // Rain
+  11: 'rainandthunder', // RainThunder
+  22: 'lightrainandthunder', // LightRainThunder
+  25: 'rainshowersandthunder', // RainThunderSun
+  41: 'rainshowers', // RainSun
+});
+
 /**
  * @description Read a finite number, null otherwise.
  * @param {any} value - The raw value (a number or an attribute string).
@@ -128,14 +146,15 @@ function readElements(body) {
  * @param {any} value - The `number` attribute.
  * @returns {string|null} The symbol code, or null when unknown.
  * @example
- * legacySymbol('46'); // -> 'lightrain'
+ * legacySymbol('10'); // -> 'rain' (Met Éireann's "Rain")
  */
 function legacySymbol(value) {
   const number = num(value);
   if (number === null) {
     return null;
   }
-  return LEGACY_SYMBOLS[Math.round(number) % 100] ?? null;
+  const legacy = Math.round(number) % 100;
+  return MET_EIREANN_RAIN[legacy] ?? LEGACY_SYMBOLS[legacy] ?? null;
 }
 
 /**
@@ -241,4 +260,4 @@ function parseForecast(xml) {
   };
 }
 
-export { LEGACY_SYMBOLS, legacySymbol, num, parseForecast, readAttributes };
+export { LEGACY_SYMBOLS, MET_EIREANN_RAIN, legacySymbol, num, parseForecast, readAttributes };
