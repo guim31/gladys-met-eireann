@@ -12,44 +12,23 @@ the notes of the version's GitHub Release.
 
 ### Added
 
-- A working example of scene triggers, scene actions and dashboard widgets
-  (Gladys 5.1.0 or later).
-- `CHANGELOG.md`, rolled by the Release workflow.
-- A GitHub Release for every version, with its changelog section as notes: the
-  Gladys Supervision page links each version to the repository's releases.
-- CI runs the tests on Node 22 and 24, and builds the Docker image.
-- Dependabot keeps the npm dependencies and the GitHub Actions up to date.
-- `SECURITY.md` (how to report a vulnerability) and `CLAUDE.md` (project rules
-  for contributors and coding assistants).
-- Manifest tests: `version` matches `package.json`, `docker_image` is tagged
-  with it, descriptions hold 10 to 100 characters, placeholders are
-  multi-language objects.
-- The latitude and longitude fields show an example value as placeholder.
+- Met Éireann weather for Gladys (Gladys 5.2.0 or later): current conditions,
+  the next 24 hours with the precipitation of each hour and its probability,
+  and the next 8 days, for every house of Gladys in or near Ireland, in metric
+  or US units. Open data, no account, no API key.
+- The official Met Éireann warnings of the county of each house (yellow,
+  orange, red), as alerts of the Gladys weather widget; the built-in weather
+  alert scene trigger of Gladys sees a change within a minute.
+- Scene trigger "Met Éireann warning changed": a warning issued, upgraded,
+  downgraded, updated or lifted, filtered by house, change, level and
+  phenomenon, with a ready-to-send sentence in English, French, German or
+  Spanish.
+- Scene trigger "Rain or snow expected within the hour".
+- Scene actions "Get the precipitation of the next hour", "Get the forecast of
+  the day" (today or tomorrow) and "Get the Met Éireann warnings" (the highest
+  level of the county).
+- Settings: county of the warnings (automatic from the location of each house,
+  or chosen), units and language of the scene texts. A "Test Met Éireann"
+  button.
 
-### Changed
-
-- Node.js 22 or later is required (Node 20 is end-of-life).
-- Integration SDK 0.15.0. The tests now run against the fake Gladys of the
-  SDK, which refuses the payloads Gladys refuses.
-- The refresh interval is one minute minimum, the fastest Gladys polls a
-  device. The plug's power is only sent when it changes, and every 30
-  minutes otherwise.
-
-### Fixed
-
-- Gladys refused the devices of the Discovery tab: the weather station and
-  the plug declared their poll frequency in seconds instead of one of the
-  values Gladys accepts, and were never polled. They now poll every minute,
-  and the readings follow the refresh interval of the configuration.
-
-- The release commit no longer fails `npm run format:check`: the Release
-  workflow updates the manifest `version` and `docker_image` in place instead
-  of re-printing the whole file with `jq`.
-- The integration can write to `/data`: the image creates the directory owned
-  by the `node` user, a new Docker volume was owned by root.
-- A sub-container running the integration's own image follows it to the new
-  tag at each release, as well as in the manifest of the build summary: it kept
-  the previous tag, which may not exist on the registry. Sub-containers on a
-  third-party image (a broker, a database...) keep theirs.
-
-[Unreleased]: https://github.com/GladysAssistant/integration-template-js/commits/main
+[Unreleased]: https://github.com/guim31/gladys-met-eireann/commits/main

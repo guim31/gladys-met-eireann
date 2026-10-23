@@ -30,17 +30,35 @@ pushing.
 
 ## Architecture
 
+A **weather** integration (manifest `type: "weather"`): no devices, a provider
+API. Gladys asks for the weather of a house (`onWeatherGet`), the integration
+answers in the pivot format of the core from the forecast it keeps in memory,
+with the Met Éireann warnings of the county of the house as `alerts`.
+
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only: createApp() then connect()
+src/app.js                        the integration on an injected client: handlers, status, warnings, lifecycle
+src/api.js                        the two Met Éireann requests (User-Agent, error kinds)
+src/forecast.js                   classic XML → slim metric forecast (points + their 1/3/6 h period)
+src/forecast-store.js             cache per location; 30 min floor, 429/403 pauses
+src/scheduler.js                  refresh timer: 30 min + 0-5 min jitter, retries
+src/warnings.js                   warning list: parsing, identity, county filter, pivot alerts, diff, store
+src/counties.js                   the 26 counties (FIPS codes) and the county of a location
+src/pivot.js                      slim forecast → pivot weather (current, 24 hours, 8 days, alerts)
+src/daily.js                      days cut at local midnights, precipitation timeline
+src/symbols.js                    MET Norway symbol codes → Gladys conditions
+src/sun.js, src/time.js           computed sunrise/sunset (NOAA), local days (TZ)
+src/next-hour.js                  precipitation within the hour (trigger + action)
+src/scene-triggers.js             "precipitation_expected" (dry → wet, baseline, 1 h cooldown)
+src/warning-triggers.js           "warning_changed" (issued/upgraded/downgraded/updated/lifted, baseline)
+src/scene-actions.js              "get_precipitation_next_hour", "get_day_forecast", "get_warnings"
+src/houses.js                     the houses of Gladys (getHouses, `location: true`)
+src/failure-log.js                repeated failures logged once (warn, debug, then info on recovery)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/texts.js, src/units.js        texts in en/fr/de/es, metric → us conversions
+gladys-assistant-integration.json manifest: name, config_schema, actions, scene cards, image...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
+test/                             node --test, against the SDK's fake Gladys and real API responses
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +88,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, scene texts, manifest texts, and `docs/{en,fr,de,es}.md`, kept in
+  sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +252,42 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Met Éireann (cette intégration)
+
+**API.** Prévisions : `GET http://openaccess.pf.api.met.ie/metno-wdb2ts/locationforecast?lat=..;long=..`
+(séparateur `;`, paramètre `long` et non `lon`), XML « classic » de MET Norway
+(weatherapi-0.4.xsd). Instants (`from` = `to` : température, vent, rafale, humidité, pression,
+nuages, point de rosée) et périodes (`from` < `to` : symbole, précipitations, min/max,
+**probabilité**), horaires jusqu'à +72 h (HARMONIE), puis 3 h, puis 6 h jusqu'à +9 j (ECMWF).
+Vigilances : `GET https://www.met.ie/Open_Data/json/warning_IRELAND.json`, vigilances terrestres
+en cours ou annoncées, comtés en codes FIPS 10-4 (`EI01` Carlow … `EI31` Wicklow, = EMMA_ID de
+MeteoAlarm). Réponses réelles du 23/10/2026 (tempête Boelo) dans `test/fixtures/` (voir leur README).
+
+**Pièges découverts.**
+
+- Ni `Expires`, ni `Last-Modified`, et `If-Modified-Since` / `If-None-Match` répondent 200 :
+  cadence maison, une prévision par lieu et une liste de vigilances toutes les 30 min au plus.
+- La première période (heure en cours) n'a pas d'instant : les instants commencent à l'heure
+  suivante. `forecast.js` lui crée un point avec les valeurs de l'instant qui la termine, sinon
+  « l'heure à venir » n'est jamais disponible.
+- Symboles : les **anciens numéros** MET Norway (1 Sun … 50 HeavySnow), sans variante jour/nuit :
+  convertis par la colonne `Old ID` de la légende (testé), jour/nuit par le soleil calculé.
+- Hors du domaine (Paris, New York) : **200** avec `<product/>` vide → « pas de prévision », le
+  cœur passe au fournisseur suivant. Londres n'a que l'ECMWF, Belfast a HARMONIE.
+- HTTPS existe mais redirige (301) vers un hôte Azure interne : on garde l'adresse HTTP
+  documentée.
+- **`id` d'une vigilance n'est pas un identifiant** : c'est le rang dans la liste (les mêmes cinq
+  vigilances numérotées 6-10 puis 5-9 cinq minutes plus tard). `capId` et `updated` changent à la
+  mise à jour, `issued` non : identité = `issued` + `type`.
+- Une vigilance expirée peut rester un moment dans la liste : filtrée sur `expiry`.
+- Comté d'une maison : la ville la plus proche parmi ~200 (`counties.js`, villes d'Irlande du Nord
+  comprises, « sans comté »), au-delà de 40 km aucune ; réglage `county` pour forcer.
+- Textes de Met Éireann en anglais seulement : on traduit niveau, phénomène et changement.
+
+**Choix (à revoir si besoin).** Type `weather` comme gladys-met-no : la spec B.18 interdit
+toute surface d'appareil à ce type, donc pas d'appareil « Vigilances » ; les vigilances passent par
+les `alerts` du pivot (widget et déclencheur d'alerte du cœur), plus `requestWeatherRefresh()`
+après un changement, plus le déclencheur maison `warning_changed` (couleurs Met Éireann,
+abaissement et mise à jour, comté, phrase traduite : ce que le déclencheur du cœur n'a pas) et
+l'action `get_warnings` (niveau le plus haut).

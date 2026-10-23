@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-met-eireann",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Met Éireann weather provider for Gladys Assistant: forecasts and official weather warnings for Ireland, no API key.",
   "type": "module",
   "main": "index.js",
   "scripts": {

@@ -1,67 +1,268 @@
-# Template de démonstration
+# Met Éireann
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+La météo de l'Irlande dans Gladys, par [Met Éireann](https://www.met.ie/), le
+service météorologique national irlandais : ses prévisions (le modèle
+HARMONIE autour de l'Irlande, puis ECMWF jusqu'à 10 jours) et ses
+**vigilances météo officielles**, comté par comté. Des données ouvertes :
+**ni compte, ni clé d'API**.
+
+Copyright Met Éireann, source [www.met.ie](https://www.met.ie/), données
+sous licence [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.fr).
+Cette intégration est un projet communautaire, sans lien avec Met Éireann.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- **Le widget météo de Gladys et l'assistant de chat** utilisent Met
+  Éireann : la météo actuelle (température, humidité, pression, point de
+  rosée, vent et rafales, nébulosité, lever et coucher du soleil), les 24
+  prochaines heures avec la pluie de chaque heure et sa probabilité, et les 8
+  prochains jours. Le jour et la nuit ont leurs propres icônes. Tout
+  s'affiche en **°C, m/s et mm** ou en **°F, mph et pouces**, selon le
+  système d'unités de chaque utilisateur de Gladys.
+- **Les vigilances Met Éireann de votre comté** (jaune, orange, rouge : vent,
+  pluie, neige et verglas, orages, brouillard, grand froid, fortes chaleurs,
+  vagues-submersion), affichées comme alertes sur le widget météo, en cours
+  ou annoncées. Le déclencheur de scène **alerte météo** intégré à Gladys
+  fonctionne avec elles, et se déclenche dans la minute qui suit un
+  changement.
+- **Déclencheur de scène « Vigilance Met Éireann modifiée »** : une vigilance
+  émise, relevée, abaissée, mise à jour ou levée, avec sa couleur et une
+  phrase dans votre langue.
+- **Déclencheur de scène « Pluie ou neige attendue dans l'heure »**.
+- **Action de scène « Obtenir les précipitations de l'heure à venir »**.
+- **Action de scène « Obtenir la prévision du jour »** (aujourd'hui ou
+  demain).
+- **Action de scène « Obtenir les vigilances Met Éireann »** : le niveau le
+  plus haut pour votre comté, pour conditionner une scène.
+
+Pas de widget en plus : le widget météo de Gladys affiche déjà les prévisions
+et les vigilances.
+
+**Irlande seulement.** Les modèles de Met Éireann couvrent l'Irlande,
+l'Irlande du Nord et les mers voisines ; ailleurs, il n'y a pas de prévision
+et Gladys utilise un autre fournisseur météo. Les vigilances couvrent les 26
+comtés de la République d'Irlande (l'Irlande du Nord dépend du Met Office).
+Pour une prévision mondiale, installez plutôt **MET Norway** : il couvre
+aussi l'Irlande, mais sans les vigilances irlandaises.
+
+## Installation
+
+1. Vérifiez que votre maison a une position dans Gladys : **Paramètres →
+   Maisons**, puis l'adresse ou la position sur la carte. L'intégration met
+   à jour la météo de chaque maison qui en a une.
+2. Installez **Met Éireann** depuis le catalogue des intégrations (ou
+   **Intégrations → Installer depuis GitHub** avec l'adresse
+   `https://github.com/guim31/gladys-met-eireann`). Gladys vous demande
+   d'autoriser l'accès à la position de vos maisons : elle sert à trouver
+   leur comté et à surveiller la pluie de l'heure à venir.
+3. Ouvrez l'onglet **Configuration** et cliquez sur **Tester Met Éireann**.
+   La réponse affiche la température actuelle de votre première maison et
+   les vigilances de son comté.
+
+C'est tout : le widget météo de votre tableau de bord affiche maintenant Met
+Éireann. Si une autre intégration météo est installée, choisissez le
+fournisseur dans les réglages du widget météo.
+
+Gladys 5.2 ou plus récent est nécessaire.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+Rien n'est obligatoire.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+- **Comté des vigilances** — **Automatique** trouve le comté de chaque maison
+  d'après sa position (la plus proche de quelque 200 villes et villages
+  irlandais). Choisissez vous-même votre comté si votre maison est près de la
+  limite d'un comté et que les vigilances affichées ne sont pas les vôtres.
+  Le choix s'applique à toutes vos maisons.
+- **Unités des valeurs de scène** — les unités des températures, du vent et
+  des précipitations que l'intégration met dans les variables de scène.
+  **Automatique** suit le système d'unités du dernier utilisateur qui a
+  consulté la météo ; choisissez **Métrique** ou **US** pour le fixer. Le
+  widget météo suit toujours la préférence de chaque utilisateur.
+- **Langue des textes de scène** — la langue des phrases que l'intégration
+  met dans les variables de scène (« Vigilance vent orange émise pour
+  Kerry… ») : anglais, français, allemand ou espagnol. Français par défaut ;
+  **Automatique** suit la langue de votre Gladys. Les textes de Met Éireann
+  eux-mêmes (titre, détails) sont en anglais.
 
-## Actions
+## Fréquence de mise à jour et conditions de Met Éireann
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Met Éireann publie ses données en accès libre et demande d'en faire un usage
+raisonnable. L'intégration :
+
+- **met à jour toutes les 30 minutes environ**, plus quelques minutes au
+  hasard pour que tous les Gladys n'appellent pas à la même seconde (les
+  modèles tournent toutes les 3 à 6 heures) ;
+- fait **un appel de prévision par maison** (les maisons au même endroit le
+  partagent) et **un appel de vigilances** pour toutes, qui alimentent tout :
+  le tableau de bord, le chat et les scènes. Ouvrir le tableau de bord ne
+  coûte rien : Gladys est servi depuis la prévision en mémoire ;
+- envoie des coordonnées arrondies à 4 décimales (une dizaine de mètres) et
+  une identification de l'application
+  (`gladys-met-eireann/<version> github.com/guim31/gladys-met-eireann`) ;
+- se met en pause si Met Éireann demande de ralentir (erreur 429) ou refuse
+  les requêtes (erreur 403).
+
+Pendant une panne, la dernière prévision reste visible 3 heures au plus.
 
 ## Scènes
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+L'intégration ajoute ses cartes à l'éditeur de scènes, dans la catégorie
+**Intégrations**. Le champ **Maison** liste vos maisons.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+### Vigilance Met Éireann modifiée
 
-## Tableau de bord
+Déclencheur : lance la scène quand une vigilance du comté d'une maison est
+**émise**, **relevée** (jaune → orange…), **abaissée**, **mise à jour** (même
+niveau, nouveau texte ou nouveaux horaires) ou **levée** (annulée ou
+terminée). Il ne se déclenche jamais à la première lecture après un
+redémarrage, ni quand Met Éireann est injoignable.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Filtres facultatifs (vide : tout correspond) :
+
+- **Maison** ;
+- **Changement** : émise, relevée, abaissée, mise à jour, levée ou terminée ;
+- **Niveau** : jaune, orange, rouge ;
+- **Phénomène** : vent, pluie, neige et verglas, orages, brouillard, grand
+  froid, fortes chaleurs, vagues-submersion, inondation, autre.
+
+Variables pour les actions suivantes : la maison, le comté, le changement
+(`issued`, `upgraded`, `downgraded`, `updated`, `lifted`), le niveau
+(`yellow`, `orange`, `red`), le phénomène (`wind`, `rain`, `snow`…), le titre
+et les détails de Met Éireann (en anglais), et un **résumé** prêt à envoyer,
+par exemple : « Vigilance vent orange émise pour Kerry, du sam. 24 oct.,
+14:00 au dim. 25 oct., 09:00. »
+
+### Pluie ou neige attendue dans l'heure
+
+Déclencheur : lance la scène quand la prévision horaire annonce des
+précipitations cette heure-ci ou la suivante, là où la mise à jour
+précédente n'en annonçait pas. Il se déclenche une fois par épisode, au plus
+une fois par heure et par maison, et jamais à la première mise à jour après
+un redémarrage.
+
+Filtres facultatifs (vide : tout correspond) :
+
+- **Maison** ;
+- **Précipitations** : pluie, neige fondue ou neige ;
+- **Intensité** : faible, modérée ou forte.
+
+Variables pour les actions suivantes : le nom de la maison, le type de
+précipitations (`rain`, `sleet`, `snow`), l'intensité (`light`, `moderate`,
+`heavy`), s'il y a de l'orage, les minutes avant le début (0 s'il pleut
+déjà), la quantité attendue sur cette heure, sa probabilité et un **résumé**
+prêt à envoyer, par exemple : « Pluie faible attendue dans 35 minutes
+(probabilité 60 %). »
+
+### Obtenir les précipitations de l'heure à venir
+
+Action : indique à la scène si de la pluie ou de la neige arrive dans l'heure
+(**Précipitations attendues** : oui ou non), quand, quoi, avec quelle
+intensité, et le même résumé. Laissez **Maison** vide pour votre première
+maison qui a une position. Si aucune prévision horaire ne couvre l'heure,
+**Prévision disponible** vaut non : n'en concluez pas qu'il fera sec.
+
+### Obtenir la prévision du jour
+
+Action : lit la prévision d'**aujourd'hui** (le reste de la journée) ou de
+**demain** pour une maison, et renvoie :
+
+- le ciel, en code Gladys (`clear`, `partly-cloudy`, `rain`, `snow`…) et en
+  toutes lettres (« Pluie ») ;
+- les températures minimale et maximale ;
+- les précipitations du jour et leur probabilité la plus haute ;
+- le vent le plus fort et la rafale la plus forte ;
+- un **résumé**, par exemple : « Demain : pluie, de 8 à 14 °C, 5,2 mm de
+  précipitations (probabilité 70 %). »
+
+### Obtenir les vigilances Met Éireann
+
+Action : lit les vigilances du comté d'une maison, en cours ou annoncées, et
+renvoie le comté, s'il y a au moins une vigilance, combien, le **niveau le
+plus haut** (`none`, `yellow`, `orange`, `red`), si une vigilance est **en
+cours**, le phénomène et le titre de la plus haute, et un **résumé**, par
+exemple : « 2 vigilances Met Éireann pour Galway : Vigilance vent orange, du
+sam. 24 oct., 14:00 au dim. 25 oct., 09:00; … ». Si Met Éireann est
+injoignable, ou si la maison est hors des comtés de la République,
+**Vigilances disponibles** vaut non.
+
+## Exemples de scènes
+
+- **Tempête en approche** : déclencheur « Vigilance Met Éireann modifiée »,
+  niveau orange ou rouge, changement émise ou relevée, puis une notification
+  avec le **résumé** et la fermeture des volets.
+- **Rentrer le linge** : déclencheur « Pluie ou neige attendue dans
+  l'heure », puis une notification avec la variable **résumé**.
+- **Météo du matin** : à 7 h, action « Obtenir la prévision du jour »
+  (aujourd'hui), puis « Obtenir les vigilances Met Éireann », puis un message
+  avec les deux résumés.
+- **Arrosage du jardin** : chaque soir, action « Obtenir la prévision du
+  jour » (demain), puis une condition sur **Précipitations** pour n'arroser
+  que si moins de 2 mm sont attendus.
+
+## Limites
+
+- **Développée sans Gladys installé en Irlande** : l'intégration est testée
+  sur de vraies réponses de Met Éireann (Dublin, Cork, Galway, et les
+  vigilances de la tempête Boelo, octobre 2026). Vos retours sont les
+  bienvenus.
+- **L'Irlande et ses environs seulement** (voir plus haut).
+- **Le comté est deviné** d'après la ville la plus proche : près d'une
+  limite, choisissez-le dans la configuration.
+- **Vigilances en anglais** : Met Éireann ne les publie qu'en anglais ;
+  l'intégration traduit le niveau, le phénomène et le changement, pas les
+  détails.
+- **Vigilances terrestres seulement** : les avis marins et pour petites
+  embarcations ne sont pas repris.
+- **L'heure est le pas le plus fin**, pendant 3 jours environ ; puis toutes
+  les 3 heures, puis toutes les 6 heures jusqu'à 10 jours environ.
+- **Ni température ressentie, ni indice UV, ni visibilité** : la prévision
+  ouverte ne les donne pas.
+- **Aujourd'hui** ne contient que les heures à venir.
+- **Les jours** sont découpés dans le fuseau horaire de Gladys, pour toutes
+  les maisons.
+- L'intégration demande Gladys 5.2 ou plus récent.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Aucune maison de Gladys n'a de position »** — renseignez la position de
+  votre maison dans **Paramètres → Maisons**.
+- **« Met Éireann n'a pas de prévision utilisable pour la position de votre
+  maison »** — la maison est hors de la zone de Met Éireann (loin de
+  l'Irlande), ou sa position est fausse : vérifiez-la dans **Paramètres →
+  Maisons**.
+- **« Met Éireann demande de ralentir »** — trop de requêtes depuis votre
+  connexion Internet : l'intégration attend et réessaie d'elle-même.
+- **« Met Éireann refuse les requêtes (HTTP 403) »** — mettez à jour
+  l'intégration.
+- **« Met Éireann est injoignable pour le moment »** — Gladys n'atteint pas
+  `openaccess.pf.api.met.ie` ou `www.met.ie` : vérifiez son accès à Internet.
+  L'intégration réessaie après 5 minutes, puis de moins en moins souvent.
+- **Les vigilances ne sont pas celles de mon comté** — choisissez votre comté
+  dans la configuration.
+- **Le tableau de bord affiche toujours un autre fournisseur** — ouvrez les
+  réglages du widget météo et choisissez Met Éireann.
+- **Journaux** : l'onglet **Journaux** de l'intégration (ou `docker logs` sur
+  l'hôte) montre le démarrage, chaque changement de vigilance, les problèmes
+  et le retour de Met Éireann, une fois chacun. Démarrez le conteneur avec
+  `LOG_LEVEL=debug` pour voir chaque mise à jour.
+
+## Confidentialité
+
+Les coordonnées de vos maisons, arrondies à une dizaine de mètres, sont
+envoyées à Met Éireann pour obtenir leur prévision, et nulle part ailleurs.
+La liste des vigilances est la même pour tous : sa requête ne porte aucune
+position. Ni compte, ni clé, rien n'est écrit sur le disque.
+
+## Crédits
+
+Prévisions et vigilances : Copyright Met Éireann, source
+[www.met.ie](https://www.met.ie/), sous licence
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.fr) ; les
+données sont converties au format météo de Gladys (unités, symboles, jours,
+alertes). Met Éireann décline toute responsabilité quant aux erreurs ou
+omissions des données et à leur disponibilité. Les symboles météo suivent la
+légende de [metno/weathericons](https://github.com/metno/weathericons) (MET
+Norway). Le code des prévisions vient de
+[l'intégration MET Norway](https://github.com/guim31/gladys-met-no) du même
+auteur, qui lit le même format.
