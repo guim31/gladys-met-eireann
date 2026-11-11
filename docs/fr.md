@@ -63,7 +63,7 @@ C'est tout : le widget météo de votre tableau de bord affiche maintenant Met
 Éireann. Si une autre intégration météo est installée, choisissez le
 fournisseur dans les réglages du widget météo.
 
-Gladys 5.2 ou plus récent est nécessaire.
+Gladys 5.3 ou plus récent est nécessaire.
 
 ## Configuration
 
@@ -221,7 +221,7 @@ injoignable, ou si la maison est hors des comtés de la République,
 - **Aujourd'hui** ne contient que les heures à venir.
 - **Les jours** sont découpés dans le fuseau horaire de Gladys, pour toutes
   les maisons.
-- L'intégration demande Gladys 5.2 ou plus récent.
+- L'intégration demande Gladys 5.3 ou plus récent.
 
 ## Dépannage
 

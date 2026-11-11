@@ -59,7 +59,7 @@ That's it: the weather widget of your dashboard now shows Met Éireann. If
 another weather integration is installed, pick the provider in the settings
 of the weather widget.
 
-Gladys 5.2 or later is required.
+Gladys 5.3 or later is required.
 
 ## Configuration
 
@@ -213,7 +213,7 @@ cannot be reached, or the house is outside the counties of the Republic,
   does not give them.
 - **Today** only holds the hours still to come.
 - **The days** are cut in the time zone of Gladys, for every house.
-- The integration needs Gladys 5.2 or later.
+- The integration needs Gladys 5.3 or later.
 
 ## Troubleshooting
 

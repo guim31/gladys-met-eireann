@@ -61,7 +61,7 @@ Das war's: Das Wetter-Widget deines Dashboards zeigt jetzt Met Éireann. Ist
 eine andere Wetter-Integration installiert, wähle den Anbieter in den
 Einstellungen des Wetter-Widgets.
 
-Gladys 5.2 oder neuer ist nötig.
+Gladys 5.3 oder neuer ist nötig.
 
 ## Konfiguration
 
@@ -220,7 +220,7 @@ der Countys der Republik, ist **Warnungen verfügbar** nein.
 - **Heute** umfasst nur die kommenden Stunden.
 - **Die Tage** werden in der Zeitzone von Gladys geschnitten, für alle
   Zuhause.
-- Die Integration benötigt Gladys 5.2 oder neuer.
+- Die Integration benötigt Gladys 5.3 oder neuer.
 
 ## Fehlerbehebung
 

@@ -296,3 +296,8 @@ test('the manifest version is the package version, and the image is tagged with 
   assert.equal(manifest.version, pkg.version);
   assert.ok(manifest.docker_image.endsWith(`:${manifest.version}`));
 });
+
+test('the catalog countries: Ireland, which needs Gladys >= 5.3.0', () => {
+  assert.deepEqual(manifest.countries, ['IE']);
+  assert.ok(isAtLeast(minGladysVersion(), [5, 3, 0]), 'countries needs Gladys 5.3.0');
+});
