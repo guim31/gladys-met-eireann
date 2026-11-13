@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-13
+
 ### Changed
 
 - Declared for Ireland only (`countries: ["IE"]`): the Gladys catalog of an
@@ -39,5 +41,6 @@ the notes of the version's GitHub Release.
   or chosen), units and language of the scene texts. A "Test Met Éireann"
   button.
 
-[Unreleased]: https://github.com/guim31/gladys-met-eireann/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-met-eireann/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-met-eireann/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/guim31/gladys-met-eireann/releases/tag/v1.0.0
