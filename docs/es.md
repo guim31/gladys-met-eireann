@@ -62,7 +62,7 @@ Eso es todo: el widget del tiempo de su panel muestra ahora Met Éireann. Si
 hay otra integración meteorológica instalada, elija el proveedor en los
 ajustes del widget del tiempo.
 
-Se necesita Gladys 5.2 o posterior.
+Se necesita Gladys 5.3 o posterior.
 
 ## Configuración
 
@@ -219,7 +219,7 @@ disponible, o la vivienda está fuera de los condados de la República,
 - **Hoy** solo contiene las horas que quedan.
 - **Los días** se cortan en la zona horaria de Gladys, para todas las
   viviendas.
-- La integración necesita Gladys 5.2 o posterior.
+- La integración necesita Gladys 5.3 o posterior.
 
 ## Solución de problemas
 
